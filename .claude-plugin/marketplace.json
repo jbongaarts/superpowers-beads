@@ -1,0 +1,20 @@
+{
+  "name": "superpowers-beads",
+  "owner": {
+    "name": "jhbongaarts"
+  },
+  "metadata": {
+    "description": "Beads-native rewrite of the superpowers skills",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "superpowers-beads",
+      "source": "./plugins/superpowers-beads",
+      "description": "Beads-native rewrite of obra's superpowers skills, built around bd for cross-session continuity",
+      "version": "0.1.0",
+      "category": "engineering",
+      "tags": ["beads", "superpowers", "workflow", "tdd", "planning"]
+    }
+  ]
+}
