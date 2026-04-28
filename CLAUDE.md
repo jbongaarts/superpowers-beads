@@ -36,8 +36,10 @@ superpowers-beads/
 Before committing:
 
 ```
-claude plugin validate .
+scripts/preflight.sh
 ```
+
+See `docs/preflight.md` for the plugin-specific preflight checks. The built-in `bd preflight --check` command currently uses beads' default Go/Nix checklist, which is not the right gate for this plugin repo.
 
 ## Beads usage
 
