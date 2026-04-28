@@ -20,7 +20,7 @@ Early scaffold. Skills are being ported one tier at a time:
 ## Install
 
 ```
-/plugin marketplace add jhbongaarts/superpowers-beads
+/plugin marketplace add jbongaarts/superpowers-beads
 /plugin install superpowers-beads@superpowers-beads
 ```
 
