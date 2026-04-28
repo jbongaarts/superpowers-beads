@@ -14,10 +14,10 @@ The script checks:
 - `bd stale`
 - no unexpected `in_progress` beads
 
-When running the script before closing the bead that is implementing the preflight itself, allow that one active issue explicitly:
+When running the script before closing a bead that you intentionally want to keep claimed (for example, the bead implementing the preflight itself), allow that one active issue explicitly:
 
 ```bash
-ALLOW_IN_PROGRESS=superpowers-beads-isj.1 scripts/preflight.sh
+ALLOW_IN_PROGRESS=<active-bead-id> scripts/preflight.sh
 ```
 
 For normal branch completion, close verified work first, then run `scripts/preflight.sh` with no allow-list.
