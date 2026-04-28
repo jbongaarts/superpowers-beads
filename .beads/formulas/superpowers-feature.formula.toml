@@ -1,0 +1,99 @@
+formula = "superpowers-feature"
+description = "Feature workflow: brainstorm, specify, plan, task, implement, verify, and finish through beads."
+version = 1
+type = "workflow"
+
+[vars.title]
+description = "Short name for the feature or change"
+required = true
+
+[vars.component]
+description = "Code area, plugin, package, or product surface being changed"
+default = "target area"
+
+[vars.branch]
+description = "Branch or PR context for the work"
+default = "current branch"
+
+[[steps]]
+id = "brainstorm"
+title = "Brainstorm {{title}}"
+type = "task"
+priority = 2
+description = """
+Explore the problem before committing to an implementation.
+
+Capture goals, constraints, stakeholders, alternative approaches, and explicit non-goals in beads comments or child issues. Keep the discussion tied to {{component}} and identify the smallest coherent slice of work.
+"""
+
+[[steps]]
+id = "spec"
+title = "Specify {{title}}"
+type = "task"
+priority = 2
+needs = ["brainstorm"]
+description = """
+Turn the selected direction into a concrete spec.
+
+Record expected behavior, acceptance criteria, edge cases, and open questions. If scope is still uncertain, create or update child beads before planning implementation.
+"""
+
+[[steps]]
+id = "plan"
+title = "Plan {{title}}"
+type = "task"
+priority = 2
+needs = ["spec"]
+description = """
+Produce an implementation plan that can survive context handoff.
+
+Map the work to existing code paths, note risky changes, identify test strategy, and define the bead dependency graph needed for execution.
+"""
+
+[[steps]]
+id = "task"
+title = "Create execution beads for {{title}}"
+type = "task"
+priority = 2
+needs = ["plan"]
+description = """
+Create or update the child beads that represent implementation tasks.
+
+Each bead should be independently claimable, have clear acceptance criteria, and depend on its blockers. Use bd dependencies instead of markdown checklists.
+"""
+
+[[steps]]
+id = "implement"
+title = "Implement {{title}}"
+type = "feature"
+priority = 2
+needs = ["task"]
+description = """
+Implement the planned change on {{branch}}.
+
+Keep changes scoped to the planned beads, update bead comments with notable decisions, and close child beads only when their acceptance criteria are met.
+"""
+
+[[steps]]
+id = "verify"
+title = "Verify {{title}}"
+type = "task"
+priority = 2
+needs = ["implement"]
+description = """
+Run the relevant checks for {{component}} and verify the original acceptance criteria.
+
+If verification exposes gaps, create follow-up beads or return to implementation instead of treating failures as incidental.
+"""
+
+[[steps]]
+id = "finish"
+title = "Finish {{title}}"
+type = "task"
+priority = 2
+needs = ["verify"]
+description = """
+Finish the branch using the repository's completion protocol.
+
+Close completed beads, run the repo preflight, commit the bead export and code changes, push the branch, open a PR, wait for protected checks, merge through PR flow, and confirm main is up to date.
+"""

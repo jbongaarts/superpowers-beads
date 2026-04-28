@@ -1,0 +1,69 @@
+formula = "superpowers-skill-authoring"
+description = "Skill authoring workflow: pressure-test triggers, write the skill, validate it, refactor, and finish."
+version = 1
+type = "workflow"
+
+[vars.title]
+description = "Short name for the skill or skill change"
+required = true
+
+[vars.skill_name]
+description = "Skill directory or user-facing skill name"
+default = "new-skill"
+
+[[steps]]
+id = "pressure-test"
+title = "Pressure-test {{skill_name}}"
+type = "task"
+priority = 2
+description = """
+Define when the skill should and should not trigger before writing prose.
+
+Capture target users, trigger phrases, anti-triggers, required inputs, failure modes, and examples where the skill would produce harmful or noisy behavior.
+"""
+
+[[steps]]
+id = "draft"
+title = "Draft {{skill_name}}"
+type = "feature"
+priority = 2
+needs = ["pressure-test"]
+description = """
+Write the skill instructions and any supporting references, scripts, or assets.
+
+Keep the skill focused, load extra context only when needed, and preserve repo conventions for frontmatter, paths, and attribution.
+"""
+
+[[steps]]
+id = "green"
+title = "Validate {{skill_name}}"
+type = "task"
+priority = 2
+needs = ["draft"]
+description = """
+Exercise the skill against realistic prompts and repository checks.
+
+Confirm that the trigger rules are accurate, referenced files resolve, scripts run non-interactively, and the plugin validator accepts the result.
+"""
+
+[[steps]]
+id = "refactor"
+title = "Refactor {{skill_name}}"
+type = "task"
+priority = 2
+needs = ["green"]
+description = """
+Tighten the skill after validation.
+
+Remove vague instructions, duplicate guidance, over-broad triggers, and unnecessary context loading. Keep examples only when they materially change behavior.
+"""
+
+[[steps]]
+id = "finish"
+title = "Finish {{skill_name}}"
+type = "task"
+priority = 2
+needs = ["refactor"]
+description = """
+Run the repo preflight, close completed beads, commit, push, open a PR, wait for checks, and merge through the protected PR flow.
+"""

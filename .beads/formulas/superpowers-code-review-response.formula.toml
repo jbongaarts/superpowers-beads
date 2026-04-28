@@ -1,0 +1,83 @@
+formula = "superpowers-code-review-response"
+description = "Code review response workflow: capture feedback, create child beads, implement responses, verify, and reply."
+version = 1
+type = "workflow"
+
+[vars.title]
+description = "Short name for the PR or review thread"
+required = true
+
+[vars.review_source]
+description = "PR URL, review URL, or review summary source"
+default = "current PR review"
+
+[[steps]]
+id = "intake"
+title = "Intake review feedback for {{title}}"
+type = "task"
+priority = 2
+description = """
+Read {{review_source}} and collect every actionable point.
+
+Group duplicate comments, separate required fixes from questions, and keep the original reviewer context linked in bead comments.
+"""
+
+[[steps]]
+id = "create-feedback-beads"
+title = "Create feedback beads for {{title}}"
+type = "task"
+priority = 2
+needs = ["intake"]
+description = """
+Create one child bead per actionable review item.
+
+Each child should include the reviewer comment, the intended response, acceptance criteria, and any dependency on other feedback items.
+"""
+
+[[steps]]
+id = "triage"
+title = "Triage review feedback for {{title}}"
+type = "task"
+priority = 2
+needs = ["create-feedback-beads"]
+description = """
+Classify each feedback bead as accept, clarify, or decline.
+
+For clarification or decline, record the technical reason before changing code or replying to the reviewer.
+"""
+
+[[steps]]
+id = "respond-in-code"
+title = "Implement accepted review feedback for {{title}}"
+type = "task"
+priority = 2
+needs = ["triage"]
+description = """
+Address accepted feedback by working the child beads.
+
+Keep commits focused, close each child bead only after the requested change or documented response is complete, and avoid unrelated refactors.
+"""
+
+[[steps]]
+id = "verify"
+title = "Verify review response for {{title}}"
+type = "task"
+priority = 2
+needs = ["respond-in-code"]
+description = """
+Run checks that cover the feedback changes and review every child bead.
+
+Confirm that required reviewer concerns are resolved, deferred work has follow-up beads, and the branch is ready for another review cycle.
+"""
+
+[[steps]]
+id = "reply"
+title = "Reply to review for {{title}}"
+type = "task"
+priority = 2
+needs = ["verify"]
+description = """
+Reply to the review with a concise summary of changes, explicit responses to non-obvious comments, and links or bead IDs for deferred follow-up.
+
+Push the branch, wait for protected checks, and merge through PR flow when the review is resolved.
+"""

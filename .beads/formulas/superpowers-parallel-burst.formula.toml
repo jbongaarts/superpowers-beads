@@ -1,0 +1,105 @@
+formula = "superpowers-parallel-burst"
+description = "Parallel burst workflow: frame a shared problem, run sibling prototype lanes, synthesize, verify, and finish."
+version = 1
+type = "workflow"
+
+[vars.title]
+description = "Short name for the investigation or prototype target"
+required = true
+
+[vars.output_contract]
+description = "Expected output from each parallel lane"
+default = "prototype, tradeoffs, verification notes, and recommendation"
+
+[[steps]]
+id = "frame"
+title = "Frame parallel burst for {{title}}"
+type = "task"
+priority = 2
+description = """
+Define the shared problem, constraints, and output contract before launching parallel work.
+
+Every sibling lane should produce: {{output_contract}}. Record any files or modules that are off limits to avoid conflicting edits.
+"""
+
+[[steps]]
+id = "lane-1"
+title = "Prototype lane 1 for {{title}}"
+type = "task"
+priority = 2
+needs = ["frame"]
+description = """
+Explore one viable approach independently.
+
+Stay within the frame, avoid overwriting other lanes, and return concise findings that satisfy the output contract.
+"""
+
+[[steps]]
+id = "lane-2"
+title = "Prototype lane 2 for {{title}}"
+type = "task"
+priority = 2
+needs = ["frame"]
+description = """
+Explore a distinct approach independently.
+
+Stay within the frame, avoid overwriting other lanes, and return concise findings that satisfy the output contract.
+"""
+
+[[steps]]
+id = "lane-3"
+title = "Prototype lane 3 for {{title}}"
+type = "task"
+priority = 2
+needs = ["frame"]
+description = """
+Explore another distinct approach independently.
+
+Stay within the frame, avoid overwriting other lanes, and return concise findings that satisfy the output contract.
+"""
+
+[[steps]]
+id = "lane-4"
+title = "Prototype lane 4 for {{title}}"
+type = "task"
+priority = 3
+needs = ["frame"]
+description = """
+Use this lane for an extra approach, stress test, or discard path.
+
+If three lanes are enough, close this bead with the reason it was intentionally skipped.
+"""
+
+[[steps]]
+id = "synthesize"
+title = "Synthesize parallel burst for {{title}}"
+type = "task"
+priority = 2
+needs = ["lane-1", "lane-2", "lane-3", "lane-4"]
+description = """
+Compare the sibling lane outputs and choose a path.
+
+Call out evidence, risks, discarded approaches, and the implementation plan that follows from the synthesis.
+"""
+
+[[steps]]
+id = "verify"
+title = "Verify chosen path for {{title}}"
+type = "task"
+priority = 2
+needs = ["synthesize"]
+description = """
+Validate the chosen result with the relevant tests or manual checks.
+
+Create follow-up beads for gaps that should not be folded into this burst.
+"""
+
+[[steps]]
+id = "finish"
+title = "Finish parallel burst for {{title}}"
+type = "task"
+priority = 2
+needs = ["verify"]
+description = """
+Close completed beads, commit the synthesized result, push, open a PR, wait for checks, and merge through the protected PR flow.
+"""

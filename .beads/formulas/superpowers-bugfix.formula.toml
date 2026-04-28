@@ -1,0 +1,85 @@
+formula = "superpowers-bugfix"
+description = "Bugfix workflow: reproduce, trace root cause, prove with a failing check, fix, verify, and finish."
+version = 1
+type = "workflow"
+
+[vars.title]
+description = "Short name for the bug"
+required = true
+
+[vars.symptom]
+description = "Observed broken behavior"
+default = "reported symptom"
+
+[vars.component]
+description = "Code area or user-visible surface affected by the bug"
+default = "target area"
+
+[[steps]]
+id = "reproduce"
+title = "Reproduce {{title}}"
+type = "bug"
+priority = 2
+description = """
+Make the bug concrete before changing code.
+
+Capture exact reproduction steps, observed behavior, expected behavior, relevant environment, and any command output or logs. If the issue cannot be reproduced, record what was tried and why.
+"""
+
+[[steps]]
+id = "trace"
+title = "Trace root cause for {{title}}"
+type = "task"
+priority = 2
+needs = ["reproduce"]
+description = """
+Trace the failure from symptom to cause.
+
+Use targeted instrumentation, logs, tests, or code inspection to explain why {{symptom}} occurs in {{component}}. Record the causal chain in the bead before fixing it.
+"""
+
+[[steps]]
+id = "failing-check"
+title = "Add failing check for {{title}}"
+type = "task"
+priority = 2
+needs = ["trace"]
+description = """
+Create a focused failing test, script, or manual verification checkpoint that demonstrates the bug.
+
+If an automated test is not practical, document a repeatable manual check with expected pre-fix failure and post-fix success.
+"""
+
+[[steps]]
+id = "fix"
+title = "Fix {{title}}"
+type = "bug"
+priority = 2
+needs = ["failing-check"]
+description = """
+Implement the smallest fix that addresses the traced root cause.
+
+Avoid broad cleanup unless it is necessary to make the fix correct. Keep the failing check focused on the root cause.
+"""
+
+[[steps]]
+id = "verify"
+title = "Verify bugfix for {{title}}"
+type = "task"
+priority = 2
+needs = ["fix"]
+description = """
+Run the failing check from the previous step and the relevant regression suite.
+
+Confirm that {{symptom}} is fixed, no nearby behavior regressed, and any remaining risk is captured in beads.
+"""
+
+[[steps]]
+id = "finish"
+title = "Finish bugfix for {{title}}"
+type = "task"
+priority = 2
+needs = ["verify"]
+description = """
+Close completed beads, run preflight, commit, push, open a PR, wait for protected checks, merge through the standard PR flow, and verify the remote branch state.
+"""
