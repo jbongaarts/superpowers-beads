@@ -1,52 +1,40 @@
-# CLAUDE.md — superpowers-beads
+# Agent Instructions
 
-Repository-specific instructions for AI agents working in this repo.
+This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
 
-## What this repo is
+## Quick Reference
 
-A Claude plugin marketplace containing one plugin (`superpowers-beads`) — a rewrite of obra's superpowers skills that uses `bd` (beads) as the persistence layer instead of `TodoWrite` and markdown plan files.
-
-## Repo layout
-
-```
-superpowers-beads/
-  .claude-plugin/
-    marketplace.json                     # marketplace catalog
-  plugins/
-    superpowers-beads/
-      .claude-plugin/
-        plugin.json                      # plugin manifest
-      skills/
-        <skill-name>/
-          SKILL.md                       # skill definition
-  LICENSE
-  README.md
-  CLAUDE.md                              # this file
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --claim  # Claim work atomically
+bd close <id>         # Complete work
+bd dolt push          # Push beads data to remote
 ```
 
-## Conventions
+## Non-Interactive Shell Commands
 
-- Plugin and skill names: kebab-case
-- Bump `version` in **both** `.claude-plugin/marketplace.json` and `plugins/superpowers-beads/.claude-plugin/plugin.json` together
-- Source paths in `marketplace.json` always start with `./`
-- Skills must have YAML frontmatter with at minimum `name` and `description`
+**ALWAYS use non-interactive flags** with file operations to avoid hanging on confirmation prompts.
 
-## Validation
+Shell commands like `cp`, `mv`, and `rm` may be aliased to include `-i` (interactive) mode on some systems, causing the agent to hang indefinitely waiting for y/n input.
 
-Before committing:
+**Use these forms instead:**
+```bash
+# Force overwrite without prompting
+cp -f source dest           # NOT: cp source dest
+mv -f source dest           # NOT: mv source dest
+rm -f file                  # NOT: rm file
 
+# For recursive operations
+rm -rf directory            # NOT: rm -r directory
+cp -rf source dest          # NOT: cp -r source dest
 ```
-claude plugin validate .
-```
 
-## Beads usage
-
-Track all work in beads — do not use `TodoWrite` or markdown TODO lists. The repo currently inherits the user-level beads workspace at `~/.beads/`; if work warrants a project-local workspace, run `bd init` in this directory.
-
-## Lineage
-
-Skills are derived from [obra/superpowers](https://github.com/obra/superpowers) (MIT). When a skill is a direct rewrite, preserve attribution in a comment at the top of `SKILL.md`.
-
+**Other commands that may prompt:**
+- `scp` - use `-o BatchMode=yes` for non-interactive
+- `ssh` - use `-o BatchMode=yes` to fail instead of prompting
+- `apt-get` - use `-y` flag
+- `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker

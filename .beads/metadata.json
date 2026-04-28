@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "superpowers_beads",
+  "project_id": "4f7e2385-8fce-46ac-a3fa-d4c793cda4b4"
+}
