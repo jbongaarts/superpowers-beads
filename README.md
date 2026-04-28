@@ -29,6 +29,13 @@ Early scaffold. Skills are being ported one tier at a time:
 - [`bd`](https://github.com/steveyegge/beads) installed and on `PATH`
 - A beads workspace initialized in the project (`bd init`) or a parent directory
 
+## Workflow formulas
+
+The repo includes beads-native workflow formulas in `.beads/formulas/`.
+Use `bd formula list` to see them, `bd cook <name> --dry-run --var title="..."` to preview them, and `bd mol pour <name> --var title="..."` to instantiate a workflow graph.
+
+See [docs/formulas.md](docs/formulas.md) for the current formula catalog.
+
 ## Credits
 
 Derived from [obra/superpowers](https://github.com/obra/superpowers) (MIT, © 2025 Jesse Vincent). Beads concepts and commands from [steveyegge/beads](https://github.com/steveyegge/beads).
