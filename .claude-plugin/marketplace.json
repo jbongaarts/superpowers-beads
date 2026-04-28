@@ -1,7 +1,8 @@
 {
   "name": "superpowers-beads",
   "owner": {
-    "name": "jbongaarts"
+    "name": "Joseph Bongaarts",
+    "email": "joe@wtfs.net"
   },
   "metadata": {
     "description": "Beads-native rewrite of the superpowers skills",
