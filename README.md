@@ -10,12 +10,23 @@ This plugin rewrites the skills to use `bd` as the source of truth for plans, ta
 
 ## Status
 
-Early scaffold. Skills are being ported one tier at a time:
+Active. Skills currently shipped:
 
-- Tier A — direct policy conflicts with `bd` (TodoWrite usage)
-- Tier B — persist what's currently ephemeral (plans, debug evidence, review feedback)
-- Tier C — wire `bd preflight` and `bd remember` into the existing gates
-- Tier D — light-touch touch-ups
+- `using-superpowers` — entry-point skill explaining how to find and use the others
+- `brainstorming` — turn ideas into approved feature epics in `bd`
+- `writing-plans` — produce a `bd` epic + child issues from an approved spec
+- `executing-plans` — work a `bd` epic to completion in a single session
+- `subagent-driven-development` — same-session execution with a fresh subagent per issue and two-stage review
+- `dispatching-parallel-agents` — model parallel work as a `bd` swarm and dispatch one worker per ready bead
+- `using-git-worktrees` — create `bd`-managed worktrees that share the beads database
+- `test-driven-development` — RED/GREEN/REFACTOR cycle with evidence recorded on `bd`
+- `systematic-debugging` — four-phase root-cause workflow with evidence persisted on the bug bead
+- `verification-before-completion` — gate every completion claim on fresh verification recorded on the bead
+- `requesting-code-review` / `receiving-code-review` — dispatch and triage reviews with `bd` as the persistent record
+- `finishing-a-development-branch` — verify, run preflight, integrate, and clean up
+- `writing-skills` — TDD for skills themselves
+
+Open work is tracked as `bd` issues — run `bd ready` to see what's queued.
 
 ## Install
 
