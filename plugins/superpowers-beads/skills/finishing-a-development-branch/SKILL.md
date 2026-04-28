@@ -175,14 +175,13 @@ Only remove a worktree after confirmation.
 For merged or discarded branches, check whether this is a separate worktree:
 
 ```bash
-git worktree list
+bd worktree list
 ```
 
 Remove only the completed feature worktree:
 
 ```bash
-git worktree remove <worktree-path>
-git worktree prune
+bd worktree remove <worktree-path>
 ```
 
 For option 3, keep the worktree.
