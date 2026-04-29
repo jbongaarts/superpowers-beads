@@ -41,29 +41,33 @@ Use this especially when:
 
 ## Beads Setup
 
-At the start of Phase 1, create or claim a bug issue:
+For non-trivial bugs, pour the bugfix formula to create the standard chain in one command:
 
 ```bash
-bd create --type=bug \
-  --title="<short symptom>" \
-  --description="<observed behavior, expected behavior, and reproduction entry point>"
-bd update <bug-id> --claim
+bd mol pour superpowers-bugfix --var title="<short symptom>" --var symptom="<observed behavior>" --var component="<area>"
 ```
 
-If you are debugging inside an existing feature epic or task, make the bug a child of that parent:
+This creates the dependency-linked chain `reproduce → trace → failing-check → fix → verify → finish` with pre-filled descriptions. The phases below map onto these steps. Claim the current step at the start of each phase:
+
+```bash
+bd update <step-id> --claim
+```
+
+If you are debugging inside an existing feature epic or task, parent the chain afterward (`bd update <step-id> --parent=<parent-id>` for each step) or skip the formula and create a single bug bead:
 
 ```bash
 bd create --type=bug --parent=<parent-id> \
   --title="<short symptom>" \
   --description="<observed behavior, expected behavior, and reproduction entry point>"
+bd update <bug-id> --claim
 ```
 
-Record every durable finding on the bug issue:
+Record every durable finding on the active step (or the single bug bead):
 
 ```bash
-bd update <bug-id> --append-notes="Evidence: <command, output summary, files, line refs>"
-bd update <bug-id> --append-notes="Hypothesis: <root cause theory and why>"
-bd update <bug-id> --append-notes="Result: <test performed and outcome>"
+bd update <step-id> --append-notes="Evidence: <command, output summary, files, line refs>"
+bd update <step-id> --append-notes="Hypothesis: <root cause theory and why>"
+bd update <step-id> --append-notes="Result: <test performed and outcome>"
 ```
 
 When the root cause teaches a reusable lesson about the project, persist it:
@@ -72,10 +76,10 @@ When the root cause teaches a reusable lesson about the project, persist it:
 bd remember "<short reusable lesson>" --key <topic>
 ```
 
-Close the bug issue only after Phase 4 verification passes:
+Close each step (or the single bug bead) only after its phase verification passes; close the final step with the fix summary:
 
 ```bash
-bd close <bug-id> --reason="<root cause and verified fix summary>"
+bd close <step-id> --reason="<root cause and verified fix summary>"
 ```
 
 ## The Four Phases

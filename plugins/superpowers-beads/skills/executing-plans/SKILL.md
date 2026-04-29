@@ -49,6 +49,8 @@ while bd ready shows open issues:
 
 **Resuming in a fresh session:** Re-run `bd ready`. Issues that were in-progress or still open surface automatically. No plan file is needed — beads is the single source of truth across session boundaries.
 
+**Formula-poured chains:** if a `superpowers-feature` (or other) workflow formula was poured upstream, its `implement` and `verify` steps will appear in `bd ready` like any other issue. Claim them the same way.
+
 #### Handling Blockers
 
 When you hit a blocker during an issue, do not guess — choose the appropriate response:
