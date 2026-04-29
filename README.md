@@ -37,8 +37,14 @@ Open work is tracked as `bd` issues — run `bd ready` to see what's queued.
 
 ## Requirements
 
+For beads-backed persistence:
+
 - [`bd`](https://github.com/steveyegge/beads) installed and on `PATH`
 - A beads workspace initialized in the project (`bd init`) or a parent directory
+
+If `bd` is not installed, the skills should continue without beads for that
+session rather than installing tools or initializing a repository automatically.
+See [docs/beads-startup.md](docs/beads-startup.md).
 
 ## Workflow formulas
 

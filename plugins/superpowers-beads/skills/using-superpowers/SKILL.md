@@ -40,6 +40,37 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 Skills use Claude Code tool names. Non-CC platforms: see `references/copilot-tools.md` (Copilot CLI), `references/codex-tools.md` (Codex), and `references/gemini-tools.md` (Gemini CLI) for tool equivalents.
 
+## Beads Availability Check
+
+Before any skill requires a `bd` command, check whether the CLI exists:
+
+```bash
+command -v bd >/dev/null 2>&1
+```
+
+If `bd` is not installed:
+
+1. Do not run `bd init`.
+2. Do not install `bd` automatically.
+3. Say that beads-backed persistence is unavailable for this session.
+4. Continue without beads if the user wants to proceed, using only
+   session-local tracking or the repo's existing tracker.
+5. If the user wants beads, give neutral install guidance and do not assume
+   global install permissions, maintainer status, or permission to modify the
+   repository.
+
+Use this wording as the default:
+
+> I do not see the `bd` CLI on PATH, so I cannot use beads-backed persistence
+> in this session. I can continue without beads for this repo/session, or you
+> can install `bd` using your preferred local, user-level, or project-approved
+> method. I will not initialize or modify this repository for beads unless you
+> explicitly ask for that.
+
+Missing `bd` and an uninitialized repository are separate states. If the CLI is
+present but no beads workspace is active, handle that as repository setup, not
+as a CLI installation problem.
+
 # Using Skills
 
 ## The Rule

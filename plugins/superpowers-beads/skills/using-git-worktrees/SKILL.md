@@ -16,6 +16,17 @@ Create isolated workspaces with `bd worktree`, not raw `git worktree`.
 
 ## Step 0: Detect Current State
 
+First check whether beads is available:
+
+```bash
+command -v bd >/dev/null 2>&1
+```
+
+If `bd` is missing, this skill cannot create a bd-managed worktree. Do not
+install `bd`, run `bd init`, or assume the user has permission to change the
+repo. Explain that beads persistence is unavailable and continue only if the
+user wants a non-beads fallback for this session.
+
 Check whether you are already in a linked worktree:
 
 ```bash
