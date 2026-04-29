@@ -1,21 +1,35 @@
 #!/usr/bin/env bash
 # Bisection script to find which test creates unwanted files/state
-# Usage: ./find-polluter.sh <file_or_dir_to_check> <test_pattern>
+# Usage:   ./find-polluter.sh <file_or_dir_to_check> <test_pattern>
 # Example: ./find-polluter.sh '.git' 'src/**/*.test.ts'
+#
+# The runner defaults to 'npm test' for Node/JS projects. Override
+# TEST_CMD for other ecosystems — the matched test path is appended
+# as the final argument.
+#
+# Examples:
+#   TEST_CMD='pytest'        ./find-polluter.sh '.cache' 'tests/**/*.py'
+#   TEST_CMD='go test'       ./find-polluter.sh '.tmp'   './pkg/**/*_test.go'
+#   TEST_CMD='cargo test --' ./find-polluter.sh 'target/wip' 'tests/**/*.rs'
 
 set -e
 
 if [ $# -ne 2 ]; then
   echo "Usage: $0 <file_to_check> <test_pattern>"
   echo "Example: $0 '.git' 'src/**/*.test.ts'"
+  echo ""
+  echo "Override the test runner via TEST_CMD (default: 'npm test'):"
+  echo "  TEST_CMD='pytest' $0 '.cache' 'tests/**/*.py'"
   exit 1
 fi
 
 POLLUTION_CHECK="$1"
 TEST_PATTERN="$2"
+TEST_CMD="${TEST_CMD:-npm test}"
 
 echo "🔍 Searching for test that creates: $POLLUTION_CHECK"
 echo "Test pattern: $TEST_PATTERN"
+echo "Test runner:  $TEST_CMD"
 echo ""
 
 # Get list of test files
@@ -39,7 +53,8 @@ for TEST_FILE in $TEST_FILES; do
   echo "[$COUNT/$TOTAL] Testing: $TEST_FILE"
 
   # Run the test
-  npm test "$TEST_FILE" > /dev/null 2>&1 || true
+  # shellcheck disable=SC2086 # intentional word-splitting to honor TEST_CMD
+  $TEST_CMD "$TEST_FILE" > /dev/null 2>&1 || true
 
   # Check if pollution appeared
   if [ -e "$POLLUTION_CHECK" ]; then
@@ -52,8 +67,8 @@ for TEST_FILE in $TEST_FILES; do
     ls -la "$POLLUTION_CHECK"
     echo ""
     echo "To investigate:"
-    echo "  npm test $TEST_FILE    # Run just this test"
-    echo "  cat $TEST_FILE         # Review test code"
+    echo "  $TEST_CMD $TEST_FILE    # Run just this test"
+    echo "  cat $TEST_FILE          # Review test code"
     exit 1
   fi
 done
