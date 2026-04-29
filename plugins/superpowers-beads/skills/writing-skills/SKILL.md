@@ -122,7 +122,7 @@ Use repository checks from the repo root when available:
 
 ```bash
 scripts/preflight.sh
-# or, from the plugin directory:
+# or, for Claude-manifest-only validation:
 claude plugin validate .
 ```
 

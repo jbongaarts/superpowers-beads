@@ -8,6 +8,9 @@ The original superpowers skills persist work as markdown plan/spec files and in-
 
 This plugin rewrites the skills to use `bd` as the source of truth for plans, tasks, debugging evidence, code-review feedback, and lessons learned — while keeping the rigor (TDD, verification-before-completion, systematic debugging) of the originals.
 
+The same skill source is exposed to Claude Code through the Claude plugin
+marketplace layout and to Codex through the repo-level `.agents/skills` link.
+
 ## Status
 
 Active. Skills currently shipped:
@@ -30,10 +33,24 @@ Open work is tracked as `bd` issues — run `bd ready` to see what's queued.
 
 ## Install
 
+Claude Code:
+
 ```
 /plugin marketplace add jbongaarts/superpowers-beads
 /plugin install superpowers-beads@superpowers-beads
 ```
+
+Codex from a checkout:
+
+```bash
+git clone https://github.com/jbongaarts/superpowers-beads.git
+cd superpowers-beads
+codex
+```
+
+Codex scans `.agents/skills`, which links to the shared skill source under
+`plugins/superpowers-beads/skills`. Installable Codex marketplace packaging is
+tracked separately from this checkout-level compatibility work.
 
 ## Requirements
 

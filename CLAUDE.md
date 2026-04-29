@@ -4,21 +4,25 @@ Repository-specific instructions for AI agents working in this repo.
 
 ## What this repo is
 
-A Claude plugin marketplace containing one plugin (`superpowers-beads`) — a rewrite of obra's superpowers skills that uses `bd` (beads) as the persistence layer instead of `TodoWrite` and markdown plan files.
+A cross-harness skill repository containing one shared skill set (`superpowers-beads`) — a rewrite of obra's superpowers skills that uses `bd` (beads) as the persistence layer instead of `TodoWrite` and markdown plan files.
+
+Claude Code consumes it through the Claude plugin marketplace files. Codex consumes the same skill source through the repo-level `.agents/skills` link.
 
 ## Repo layout
 
 ```
 superpowers-beads/
+  .agents/
+    skills -> ../plugins/superpowers-beads/skills # Codex repo-skill discovery
   .claude-plugin/
-    marketplace.json                     # marketplace catalog
+    marketplace.json                     # Claude marketplace catalog
   plugins/
     superpowers-beads/
       .claude-plugin/
-        plugin.json                      # plugin manifest
+        plugin.json                      # Claude plugin manifest
       skills/
         <skill-name>/
-          SKILL.md                       # skill definition
+          SKILL.md                       # shared skill definition
   LICENSE
   README.md
   CLAUDE.md                              # this file
@@ -30,6 +34,7 @@ superpowers-beads/
 - Bump `version` in **both** `.claude-plugin/marketplace.json` and `plugins/superpowers-beads/.claude-plugin/plugin.json` together
 - Source paths in `marketplace.json` always start with `./`
 - Skills must have YAML frontmatter with at minimum `name` and `description`
+- Keep shared skill content under `plugins/superpowers-beads/skills`; `.agents/skills` should remain a link to that source, not a copied tree
 
 ## Validation
 

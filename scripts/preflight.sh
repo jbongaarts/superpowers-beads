@@ -14,6 +14,7 @@ run() {
 }
 
 run claude plugin validate .
+run test -f .agents/skills/using-superpowers/SKILL.md
 run git diff --check
 run bd orphans
 run bd stale
