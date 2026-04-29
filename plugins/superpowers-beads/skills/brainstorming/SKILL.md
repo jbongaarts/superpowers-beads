@@ -66,41 +66,12 @@ Create or update beads for each of these items and complete them in order:
 
 ## Process Flow
 
-```dot
-digraph brainstorming {
-    "Create/claim brainstorming issue" [shape=box];
-    "Explore project context" [shape=box];
-    "Visual questions ahead?" [shape=diamond];
-    "Offer Visual Companion\n(own message, no other content)" [shape=box];
-    "Ask clarifying questions" [shape=box];
-    "Record answers in bd notes" [shape=box];
-    "Propose 2-3 approaches" [shape=box];
-    "Present design sections" [shape=box];
-    "User approves design?" [shape=diamond];
-    "Create/update feature epic" [shape=box];
-    "Epic self-review\n(fix inline)" [shape=box];
-    "User approves epic?" [shape=diamond];
-    "Invoke writing-plans with epic ID" [shape=doublecircle];
+The checklist above is the flow. Two control points to enforce:
 
-    "Create/claim brainstorming issue" -> "Explore project context";
-    "Explore project context" -> "Visual questions ahead?";
-    "Visual questions ahead?" -> "Offer Visual Companion\n(own message, no other content)" [label="yes"];
-    "Visual questions ahead?" -> "Ask clarifying questions" [label="no"];
-    "Offer Visual Companion\n(own message, no other content)" -> "Ask clarifying questions";
-    "Ask clarifying questions" -> "Record answers in bd notes";
-    "Record answers in bd notes" -> "Propose 2-3 approaches";
-    "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "User approves design?";
-    "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Create/update feature epic" [label="yes"];
-    "Create/update feature epic" -> "Epic self-review\n(fix inline)";
-    "Epic self-review\n(fix inline)" -> "User approves epic?";
-    "User approves epic?" -> "Create/update feature epic" [label="changes requested"];
-    "User approves epic?" -> "Invoke writing-plans with epic ID" [label="approved"];
-}
-```
+- **Visual Companion offer (if relevant) must be its own message** — no other content alongside.
+- **Two approval gates** — design approval before creating the epic, and epic approval before invoking writing-plans. If approval is withheld at either gate, revise and re-present, do not proceed.
 
-**The terminal state is invoking writing-plans with the approved epic ID.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
+**The terminal state is invoking `superpowers:writing-plans` with the approved epic ID.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
 
 ## The Process
 

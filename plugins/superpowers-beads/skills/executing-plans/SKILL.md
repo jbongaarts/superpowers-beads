@@ -3,7 +3,7 @@ name: executing-plans
 description: Use when you have a beads epic of planned issues to execute in a separate session with review checkpoints
 ---
 
-<!-- Derived from obra/superpowers (MIT, © 2025 Jesse Vincent) — rewritten to use bd (beads) as the persistence layer. -->
+<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Executing Plans
 
@@ -110,5 +110,5 @@ After all issues complete and verified:
 
 **Required workflow skills:**
 - **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
-- **superpowers:writing-plans** - Creates the epic + child issues this skill executes. When `superpowers:writing-plans` (the beads-native rewrite) is ported, it will produce an epic with child issues rather than a markdown file — making this skill's handoff seamless.
+- **superpowers:writing-plans** - Creates the epic + child issues this skill executes.
 - **superpowers:finishing-a-development-branch** - Complete development after all issues close
