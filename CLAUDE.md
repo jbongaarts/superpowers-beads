@@ -45,6 +45,12 @@ See `docs/preflight.md` for the plugin-specific preflight checks. The built-in `
 
 Track all work in beads — do not use `TodoWrite` or markdown TODO lists. The repo currently inherits the user-level beads workspace at `~/.beads/`; if work warrants a project-local workspace, run `bd init` in this directory.
 
+This repository currently has no Dolt remote configured. Still run
+`bd dolt push` during session close so the workflow stays consistent, but the
+expected output is `No remote is configured — skipping.` Treat that message as
+informational, not a blocker. `git push` remains mandatory for code and
+`.beads/issues.jsonl` changes.
+
 ## Lineage
 
 Skills are derived from [obra/superpowers](https://github.com/obra/superpowers) (MIT). When a skill is a direct rewrite, preserve attribution in a comment at the top of `SKILL.md`.
