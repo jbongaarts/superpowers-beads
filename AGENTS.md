@@ -1,16 +1,46 @@
-# Agent Instructions
+# Agent Instructions — superpowers-beads
 
-This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
+Repository-specific instructions for AI agents working in this repo. Both Claude Code and Codex read these instructions; `CLAUDE.md` is a symlink to this file so the two harnesses see the same content.
 
-## Quick Reference
+## What this repo is
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work atomically
-bd close <id>         # Complete work
-bd dolt push          # Push beads data to remote
+A Claude plugin marketplace containing one plugin (`superpowers-beads`) — a rewrite of obra's superpowers skills that uses `bd` (beads) as the persistence layer instead of `TodoWrite` and markdown plan files.
+
+## Repo layout
+
 ```
+superpowers-beads/
+  .claude-plugin/
+    marketplace.json                     # marketplace catalog
+  plugins/
+    superpowers-beads/
+      .claude-plugin/
+        plugin.json                      # plugin manifest
+      skills/
+        <skill-name>/
+          SKILL.md                       # skill definition
+  AGENTS.md                              # this file (canonical agent instructions)
+  CLAUDE.md                              # symlink to AGENTS.md
+  LICENSE
+  README.md
+```
+
+## Conventions
+
+- Plugin and skill names: kebab-case
+- Bump `version` in **both** `.claude-plugin/marketplace.json` and `plugins/superpowers-beads/.claude-plugin/plugin.json` together
+- Source paths in `marketplace.json` always start with `./`
+- Skills must have YAML frontmatter with at minimum `name` and `description`
+
+## Validation
+
+Before committing:
+
+```
+scripts/preflight.sh
+```
+
+See `docs/preflight.md` for the plugin-specific preflight checks. The built-in `bd preflight --check` command currently uses beads' default Go/Nix checklist, which is not the right gate for this plugin repo.
 
 ## Non-Interactive Shell Commands
 
@@ -35,6 +65,10 @@ cp -rf source dest          # NOT: cp -r source dest
 - `ssh` - use `-o BatchMode=yes` to fail instead of prompting
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
+
+## Lineage
+
+Skills are derived from [obra/superpowers](https://github.com/obra/superpowers) (MIT). When a skill is a direct rewrite, preserve attribution in a comment at the top of `SKILL.md`.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
