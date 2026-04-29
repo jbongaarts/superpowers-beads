@@ -30,10 +30,16 @@ Open work is tracked as `bd` issues — run `bd ready` to see what's queued.
 
 ## Install
 
+Claude Code:
+
 ```
 /plugin marketplace add jbongaarts/superpowers-beads
 /plugin install superpowers-beads@superpowers-beads
 ```
+
+Codex installation is planned around a repo-hosted Codex marketplace. See
+[docs/codex-publishing.md](docs/codex-publishing.md) for the publishing and
+installation plan.
 
 ## Requirements
 
