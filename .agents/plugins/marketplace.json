@@ -1,0 +1,20 @@
+{
+  "name": "superpowers-beads",
+  "interface": {
+    "displayName": "Superpowers Beads"
+  },
+  "plugins": [
+    {
+      "name": "superpowers-beads",
+      "source": {
+        "source": "local",
+        "path": "./plugins/superpowers-beads"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

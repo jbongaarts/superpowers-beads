@@ -3,6 +3,9 @@
 node_modules/
 *.log
 
+# Codex marker file written by local Codex sessions; not meaningful to the plugin.
+.codex
+
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db
