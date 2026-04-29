@@ -1,0 +1,30 @@
+{
+  "name": "superpowers-beads",
+  "version": "0.1.0",
+  "description": "Beads-native rewrite of obra's superpowers skills, built around bd for cross-session continuity",
+  "author": {
+    "name": "Joseph Bongaarts",
+    "email": "joe@wtfs.net",
+    "url": "https://github.com/jbongaarts"
+  },
+  "homepage": "https://github.com/jbongaarts/superpowers-beads",
+  "repository": "https://github.com/jbongaarts/superpowers-beads",
+  "license": "MIT",
+  "keywords": ["beads", "superpowers", "workflow", "tdd", "planning"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Superpowers Beads",
+    "shortDescription": "Beads-native engineering workflow skills",
+    "longDescription": "A Codex-ready bundle of superpowers workflow skills that uses bd for durable planning, debugging evidence, code review, TDD, and branch completion.",
+    "developerName": "Joseph Bongaarts",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/jbongaarts/superpowers-beads",
+    "defaultPrompt": [
+      "Use Superpowers Beads to plan this feature.",
+      "Use Superpowers Beads to debug this failure.",
+      "Use Superpowers Beads to finish this branch."
+    ],
+    "brandColor": "#10A37F"
+  }
+}

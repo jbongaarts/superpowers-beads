@@ -1,6 +1,6 @@
 # Plugin Preflight
 
-`bd preflight --check` currently runs beads' built-in Go/Nix project checks. This repository is a Claude plugin marketplace, so use the repo-local plugin preflight before opening or merging PRs:
+`bd preflight --check` currently runs beads' built-in Go/Nix project checks. This repository ships Claude plugin metadata and Codex-discoverable repo skills, so use the repo-local plugin preflight before opening or merging PRs:
 
 ```bash
 scripts/preflight.sh
@@ -9,6 +9,8 @@ scripts/preflight.sh
 The script checks:
 
 - `claude plugin validate .`
+- Codex skill discovery smoke check through `.agents/skills`
+- Codex plugin manifest and marketplace JSON parse checks
 - `git diff --check`
 - `bd orphans`
 - `bd stale`
