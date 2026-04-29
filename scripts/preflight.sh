@@ -14,6 +14,8 @@ run() {
 }
 
 run claude plugin validate .
+run scripts/check-version-sync.sh
+run scripts/check-skill-frontmatter.sh
 run git diff --check
 run bd orphans
 run bd stale

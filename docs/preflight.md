@@ -9,6 +9,8 @@ scripts/preflight.sh
 The script checks:
 
 - `claude plugin validate .`
+- `scripts/check-version-sync.sh` — `marketplace.json` and `plugin.json` carry the same plugin version
+- `scripts/check-skill-frontmatter.sh` — every `SKILL.md` has YAML frontmatter with non-empty `name` and `description`
 - `git diff --check`
 - `bd orphans`
 - `bd stale`
