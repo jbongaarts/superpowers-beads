@@ -104,6 +104,13 @@ Use the bisection script `find-polluter.sh` in this directory:
 ./find-polluter.sh '.git' 'src/**/*.test.ts'
 ```
 
+Defaults to `npm test`. Override `TEST_CMD` for other ecosystems:
+
+```bash
+TEST_CMD='pytest'  ./find-polluter.sh '.cache' 'tests/**/*.py'
+TEST_CMD='go test' ./find-polluter.sh '.tmp'   './pkg/**/*_test.go'
+```
+
 Runs tests one-by-one, stops at first polluter. See script for usage.
 
 ## Real Example: Empty projectDir
