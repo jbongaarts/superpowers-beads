@@ -1,18 +1,68 @@
-# Agent Instructions
+# Agent Instructions — superpowers-beads
 
-This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
+Repository-specific instructions for AI agents working in this repo. Both Claude
+Code and Codex read these instructions; `CLAUDE.md` is a symlink to this file so
+the two harnesses see the same content.
 
-## Quick Reference
+## What this repo is
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work atomically
-bd close <id>         # Complete work
-bd dolt push          # Attempt beads remote sync; currently skips because no Dolt remote is configured
+A cross-harness skill repository containing one shared skill set
+(`superpowers-beads`) — a rewrite of obra's superpowers skills that uses `bd`
+(beads) as the persistence layer instead of `TodoWrite` and markdown plan
+files.
+
+Claude Code consumes it through the Claude plugin marketplace files. Codex
+consumes the same skill source through the repo-level `.agents/skills` link and
+the Codex plugin marketplace files.
+
+## Repo layout
+
+```
+superpowers-beads/
+  .agents/
+    plugins/
+      marketplace.json                   # Codex marketplace catalog
+    skills -> ../plugins/superpowers-beads/skills
+  .claude-plugin/
+    marketplace.json                     # Claude marketplace catalog
+  plugins/
+    superpowers-beads/
+      .codex-plugin/
+        plugin.json                      # Codex plugin manifest
+      .claude-plugin/
+        plugin.json                      # Claude plugin manifest
+      skills/
+        <skill-name>/
+          SKILL.md                       # shared skill definition
+  AGENTS.md                              # this file (canonical agent instructions)
+  CLAUDE.md                              # symlink to AGENTS.md
+  LICENSE
+  README.md
 ```
 
-## Beads Remote Status
+## Conventions
+
+- Plugin and skill names: kebab-case
+- Bump `version` in **both** `.claude-plugin/marketplace.json` and `plugins/superpowers-beads/.claude-plugin/plugin.json` together
+- Source paths in marketplace files always start with `./`
+- Skills must have YAML frontmatter with at minimum `name` and `description`
+- Keep shared skill content under `plugins/superpowers-beads/skills`; `.agents/skills` should remain a link to that source, not a copied tree
+
+## Validation
+
+Before committing:
+
+```
+scripts/preflight.sh
+```
+
+See `docs/preflight.md` for the plugin-specific preflight checks. The built-in
+`bd preflight --check` command currently uses beads' default Go/Nix checklist,
+which is not the right gate for this plugin repo.
+
+## Beads Usage
+
+Track all work in beads — do not use `TodoWrite` or markdown TODO lists.
 
 This repository currently has no Dolt remote configured. Still run
 `bd dolt push` during session close so the workflow stays consistent, but the
@@ -43,6 +93,10 @@ cp -rf source dest          # NOT: cp -r source dest
 - `ssh` - use `-o BatchMode=yes` to fail instead of prompting
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
+
+## Lineage
+
+Skills are derived from [obra/superpowers](https://github.com/obra/superpowers) (MIT). When a skill is a direct rewrite, preserve attribution in a comment at the top of `SKILL.md`.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
