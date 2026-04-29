@@ -1,6 +1,6 @@
 ---
 name: using-git-worktrees
-description: Use when starting feature work that needs an isolated workspace, dispatching parallel agents, or executing implementation plans - creates bd-managed git worktrees, shares the beads database automatically, and claims the underlying issue before work starts
+description: Use when starting feature work that needs an isolated workspace, dispatching parallel agents, or executing an implementation plan - creates a bd-managed worktree and claims the underlying issue before work starts
 ---
 <!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
@@ -16,29 +16,9 @@ Create isolated workspaces with `bd worktree`, not raw `git worktree`.
 
 ## Step 0: Detect Current State
 
-First check whether beads is available:
+First confirm beads is usable. If `bd` is missing or no beads workspace is active, follow the fallback rules in `superpowers:using-superpowers` (do not auto-install or auto-init). This skill cannot create a bd-managed worktree without both — only continue if the user explicitly wants a non-beads worktree fallback.
 
-```bash
-command -v bd >/dev/null 2>&1
-```
-
-If `bd` is missing, this skill cannot create a bd-managed worktree. Do not
-install `bd`, run `bd init`, or assume the user has permission to change the
-repo. Explain that beads persistence is unavailable and continue only if the
-user wants a non-beads fallback for this session.
-
-Then verify a beads workspace is active:
-
-```bash
-bd where --json
-```
-
-If no workspace is active, this skill still cannot create a bd-managed worktree.
-Do not initialize beads or modify repository metadata automatically. Continue
-only if the user explicitly wants a non-beads worktree fallback for this
-session.
-
-Check whether you are already in a linked worktree:
+Then check whether you are already in a linked worktree:
 
 ```bash
 GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)

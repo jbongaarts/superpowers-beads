@@ -2,7 +2,7 @@
 name: using-superpowers
 description: Use when starting any conversation - establishes how to find and activate skills before any response, including clarifying questions
 ---
-<!-- Derived from obra/superpowers (MIT, © 2025 Jesse Vincent) — rewritten to use bd (beads) as the persistence layer. -->
+<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 <SUBAGENT-STOP>
 If you were dispatched as a subagent to execute a specific task, skip this skill.
@@ -44,101 +44,42 @@ Skills use Claude Code tool names. Non-CC platforms: see `references/copilot-too
 
 ## Beads Availability Check
 
-Before any skill requires a `bd` command, check whether the CLI exists:
+Before running `bd` from any skill, check the CLI and workspace state. Treat each degraded state as a separate problem; never auto-install or auto-init.
 
 ```bash
-command -v bd >/dev/null 2>&1
+command -v bd >/dev/null 2>&1   # state 1: CLI present?
+bd where --json                 # state 2: workspace active? (returns no_beads_directory if not)
+git rev-parse --show-toplevel   # state 3: inside a git repo?
 ```
 
-If `bd` is not installed:
+In every degraded state, you must:
 
-1. Do not run `bd init`.
-2. Do not install `bd` automatically.
-3. Say that beads-backed persistence is unavailable for this session.
-4. Continue without beads if the user wants to proceed, using only
-   session-local tracking or the repo's existing tracker.
-5. If the user wants beads, give neutral install guidance and do not assume
-   global install permissions, maintainer status, or permission to modify the
-   repository.
+1. **Not** run `bd init`, install `bd`, or modify the repo.
+2. Tell the user which state you're in (CLI missing / workspace missing inside a repo / outside any repo / invalid bd metadata).
+3. Offer to continue session-locally or use the repo's existing tracker.
+4. Initialize or install only on explicit user request and only when they have permission.
 
-Use this wording as the default:
+Example wording when `bd` is missing (adapt for the other states):
 
-> I do not see the `bd` CLI on PATH, so I cannot use beads-backed persistence
-> in this session. I can continue without beads for this repo/session, or you
-> can install `bd` using your preferred local, user-level, or project-approved
-> method. I will not initialize or modify this repository for beads unless you
-> explicitly ask for that.
+> I do not see the `bd` CLI on PATH, so beads-backed persistence is unavailable. I can continue session-locally, or you can install `bd` your preferred way. I will not initialize or modify this repository unless you explicitly ask.
 
-Missing `bd` and an uninitialized repository are separate states. If the CLI is
-present but no beads workspace is active, handle that as repository setup, not
-as a CLI installation problem.
+If `bd` reports invalid or degraded metadata, do not repair, migrate, or reinitialize automatically. Report the error concisely and continue without beads if the task can proceed safely.
 
-After `bd` is available, check whether a workspace is active:
-
-```bash
-bd where --json
-```
-
-If the command reports `no_beads_directory`, no beads workspace is active. Use a
-read-only git check to distinguish a repository without beads from a session
-outside a repository:
-
-```bash
-git rev-parse --show-toplevel >/dev/null 2>&1
-```
-
-If inside a repo, say:
-
-> The `bd` CLI is installed, but this repository does not have an active beads
-> workspace. I can continue without beads for this repo/session, use the repo's
-> existing tracker, or initialize beads only if you explicitly want that and
-> have permission to add it here.
-
-If outside a repo, say:
-
-> The `bd` CLI is installed, but this session is not inside a git repository or
-> an active beads workspace. I can continue without beads for this session, or
-> you can move me to a repository/workspace where beads should be used.
-
-If `bd` reports invalid or degraded metadata, do not repair, reinitialize,
-migrate, or restore automatically. Report the error concisely and continue
-without beads if the task can proceed safely.
+See `docs/beads-startup.md` for the full state matrix.
 
 # Using Skills
 
 ## The Rule
 
-**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means that you should invoke the skill to check. If an invoked skill turns out to be wrong for the situation, you don't need to use it.
+**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means you should invoke the skill to check. If an invoked skill turns out to be wrong for the situation, you don't need to use it.
 
-```dot
-digraph skill_flow {
-    "User message received" [shape=doublecircle];
-    "About to plan formally?" [shape=doublecircle];
-    "Already brainstormed?" [shape=diamond];
-    "Invoke brainstorming skill" [shape=box];
-    "Might any skill apply?" [shape=diamond];
-    "Activate skill" [shape=box];
-    "Announce: 'Using [skill] to [purpose]'" [shape=box];
-    "Has checklist?" [shape=diamond];
-    "bd create per checklist item" [shape=box];
-    "Follow skill exactly" [shape=box];
-    "Respond (including clarifications)" [shape=doublecircle];
+Decision flow on every user message, before responding (including before clarifying questions):
 
-    "About to plan formally?" -> "Already brainstormed?";
-    "Already brainstormed?" -> "Invoke brainstorming skill" [label="no"];
-    "Already brainstormed?" -> "Might any skill apply?" [label="yes"];
-    "Invoke brainstorming skill" -> "Might any skill apply?";
-
-    "User message received" -> "Might any skill apply?";
-    "Might any skill apply?" -> "Activate skill" [label="yes, even 1%"];
-    "Might any skill apply?" -> "Respond (including clarifications)" [label="definitely not"];
-    "Activate skill" -> "Announce: 'Using [skill] to [purpose]'";
-    "Announce: 'Using [skill] to [purpose]'" -> "Has checklist?";
-    "Has checklist?" -> "bd create per checklist item" [label="yes"];
-    "Has checklist?" -> "Follow skill exactly" [label="no"];
-    "bd create per checklist item" -> "Follow skill exactly";
-}
-```
+1. **About to plan formally?** If yes and you haven't already brainstormed, invoke `superpowers:brainstorming` first.
+2. **Might any skill apply, even 1%?** If yes → activate it. If definitely not → respond directly.
+3. **After activating:** announce "Using [skill] to [purpose]".
+4. **Does the skill have a checklist?** If yes → `bd create` one issue per item before doing the work. If no → follow the skill exactly.
+5. Then respond.
 
 When a skill provides a checklist, materialize each item as a `bd` issue (`bd create --title="..." --type=task`) so the work survives compaction, restart, or session hand-off. Track progress with `bd ready` / `bd update --claim` / `bd close` rather than in-session todo state.
 

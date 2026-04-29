@@ -2,7 +2,7 @@
 name: subagent-driven-development
 description: Use when executing bd-tracked tasks with independent issues in the current session
 ---
-<!-- Derived from obra/superpowers (MIT, © 2025 Jesse Vincent) — rewritten to use bd (beads) as the persistence layer. -->
+<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Subagent-Driven Development
 
@@ -40,50 +40,22 @@ digraph when_to_use {
 
 ## The Process
 
-```dot
-digraph process {
-    rankdir=TB;
+Outer loop, scoped to the epic:
 
-    subgraph cluster_per_task {
-        label="Per Task";
-        "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
-        "Implementer subagent asks questions?" [shape=diamond];
-        "Answer questions, provide context" [shape=box];
-        "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
-        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
-        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
-        "Implementer subagent fixes spec gaps" [shape=box];
-        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
-        "Code quality reviewer subagent approves?" [shape=diamond];
-        "Implementer subagent fixes quality issues" [shape=box];
-        "bd close <task-id>" [shape=box];
-    }
+1. `bd ready` (scoped to epic) → pick the next ready issue.
+2. Run the per-task loop below.
+3. When `bd ready` is empty → dispatch a final code reviewer over the whole implementation, then invoke `superpowers:finishing-a-development-branch`.
 
-    "bd ready (scoped to epic) → list of ready issues" [shape=box];
-    "Any more bd ready issues?" [shape=diamond];
-    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
-    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+Per-task loop (one task at a time, never in parallel):
 
-    "bd ready (scoped to epic) → list of ready issues" -> "Dispatch implementer subagent (./implementer-prompt.md)";
-    "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
-    "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
-    "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
-    "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
-    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
-    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
-    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
-    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
-    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
-    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
-    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
-    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
-    "Code quality reviewer subagent approves?" -> "bd close <task-id>" [label="yes"];
-    "bd close <task-id>" -> "Any more bd ready issues?";
-    "Any more bd ready issues?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
-    "Any more bd ready issues?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
-    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
-}
-```
+1. Dispatch the implementer subagent using `./implementer-prompt.md`.
+2. If the implementer asks questions, answer them and re-dispatch with the added context.
+3. Implementer implements, tests, commits, and self-reviews.
+4. Dispatch the spec compliance reviewer using `./spec-reviewer-prompt.md`. If it finds gaps → implementer fixes → re-review. Loop until spec-compliant.
+5. Only after spec compliance is ✅, dispatch the code quality reviewer using `./code-quality-reviewer-prompt.md`. If it finds issues → implementer fixes → re-review. Loop until approved.
+6. `bd close <task-id>`.
+
+Order matters: spec compliance gate runs before code quality. Never start quality review on uncompliant code.
 
 ## Model Selection
 
@@ -124,80 +96,30 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 - `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
 - `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
 
-## Example Workflow
+## Example (one task cycle, including a failed review loop)
 
-```
-You: I'm using Subagent-Driven Development to execute this work.
+```text
+[bd ready --epic <epic-id>  →  list of ready IDs]
+[bd show <task-id>  →  full task brief]
+[bd update <task-id> --claim]
 
-[Run: bd ready --epic <epic-id>  →  returns list of ready issue IDs]
-[Pick first issue: bd show <task-1-id>  →  get full task brief]
-[bd update <task-1-id> --claim]
+[Dispatch implementer with bd show output + scene-setting context]
+Implementer: "Question before I start: <ambiguity>?"
+You: "<answer>"
+Implementer: implements, tests, self-reviews, commits.
 
-Task 1: Hook installation script  (<task-1-id>)
+[Dispatch spec reviewer]
+Spec reviewer: ❌ Missing X; Extra Y not in spec.
+[Implementer fixes; re-dispatch spec reviewer]
+Spec reviewer: ✅ Spec compliant.
 
-[Dispatch implementation subagent with bd show output + architectural context]
+[Only now: dispatch code quality reviewer]
+Code reviewer: Important: <issue>.
+[Implementer fixes; re-dispatch code quality reviewer]
+Code reviewer: ✅ Approved.
 
-Implementer: "Before I begin - should the hook be installed at user or system level?"
-
-You: "User level (~/.config/superpowers/hooks/)"
-
-Implementer: "Got it. Implementing now..."
-[Later] Implementer:
-  - Implemented install-hook command
-  - Added tests, 5/5 passing
-  - Self-review: Found I missed --force flag, added it
-  - Committed
-
-[Dispatch spec compliance reviewer]
-Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
-
-[Get git SHAs, dispatch code quality reviewer]
-Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
-
-[bd close <task-1-id>]
-
-Task 2: Recovery modes  (<task-2-id>)
-
-[bd show <task-2-id>  →  get task brief]
-[bd update <task-2-id> --claim]
-[Dispatch implementation subagent with bd show output + context]
-
-Implementer: [No questions, proceeds]
-Implementer:
-  - Added verify/repair modes
-  - 8/8 tests passing
-  - Self-review: All good
-  - Committed
-
-[Dispatch spec compliance reviewer]
-Spec reviewer: ❌ Issues:
-  - Missing: Progress reporting (spec says "report every 100 items")
-  - Extra: Added --json flag (not requested)
-
-[Implementer fixes issues]
-Implementer: Removed --json flag, added progress reporting
-
-[Spec reviewer reviews again]
-Spec reviewer: ✅ Spec compliant now
-
-[Dispatch code quality reviewer]
-Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
-
-[Implementer fixes]
-Implementer: Extracted PROGRESS_INTERVAL constant
-
-[Code reviewer reviews again]
-Code reviewer: ✅ Approved
-
-[bd close <task-2-id>]
-
-...
-
-[bd ready --epic <epic-id> returns empty → all done]
-[Dispatch final code-reviewer]
-Final reviewer: All requirements met, ready to merge
-
-Done!
+[bd close <task-id>]
+[Repeat per ready issue. When bd ready is empty: dispatch final whole-implementation reviewer, then finishing-a-development-branch.]
 ```
 
 ## Advantages
