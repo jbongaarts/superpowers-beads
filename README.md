@@ -44,7 +44,8 @@ For beads-backed persistence:
 
 If `bd` is not installed, the skills should continue without beads for that
 session rather than installing tools or initializing a repository automatically.
-See [docs/beads-startup.md](docs/beads-startup.md).
+If `bd` is installed but no beads workspace is active, initialization is still
+opt-in. See [docs/beads-startup.md](docs/beads-startup.md).
 
 ## Workflow formulas
 

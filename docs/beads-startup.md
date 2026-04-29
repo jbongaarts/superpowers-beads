@@ -36,9 +36,65 @@ Handle it separately from missing `.beads` metadata.
 
 ## State 2: `bd` Is Installed But This Repo Has No Beads Workspace
 
-This is tracked separately by `superpowers-beads-2ko`. The desired behavior is
-also non-fatal: explain that no beads workspace is active, continue without
-beads if appropriate, and only initialize beads when the user explicitly asks.
+After the CLI check succeeds, inspect workspace resolution before running any
+workflow command such as `bd ready`:
+
+```bash
+bd where --json
+```
+
+If it returns `no_beads_directory`, no beads workspace is active. Distinguish
+the surrounding state with read-only checks:
+
+```bash
+git rev-parse --show-toplevel >/dev/null 2>&1
+```
+
+- If the command succeeds, the session is in a git repository that has no active
+  beads metadata in the repo or its parents.
+- If it fails, the session is outside a git repository and also has no active
+  beads workspace.
+
+In both cases:
+
+- Do not run `bd init` automatically.
+- Do not create `.beads/`, hooks, AGENTS files, or ignore rules automatically.
+- Do not assume the user is the maintainer or has permission to add project
+  files.
+- Continue without beads for the session if that is appropriate.
+- If the user wants beads, explain the difference between project-local,
+  contributor/stealth, and personal/global setup options and wait for explicit
+  direction before changing the repo.
+
+Neutral wording inside a repository:
+
+```text
+The `bd` CLI is installed, but this repository does not have an active beads
+workspace. I can continue without beads for this repo/session, use the repo's
+existing tracker, or initialize beads only if you explicitly want that and have
+permission to add it here.
+```
+
+Neutral wording outside a repository:
+
+```text
+The `bd` CLI is installed, but this session is not inside a git repository or an
+active beads workspace. I can continue without beads for this session, or you can
+move me to a repository/workspace where beads should be used.
+```
+
+## State 2b: Beads Metadata Exists But Is Invalid
+
+If `bd where --json` or `bd context --json` reports an error other than
+`no_beads_directory`, treat it as a degraded workspace, not as permission to
+repair or reinitialize it.
+
+- Report the command and concise error.
+- Do not run destructive init flags, migration, restore, or repair commands
+  without explicit user intent.
+- Continue without beads if the task can proceed safely.
+- If persistence is required, file or record a blocker in the available tracker
+  and move to other work.
 
 ## State 3: `bd` Is Installed And A Beads Workspace Is Active
 

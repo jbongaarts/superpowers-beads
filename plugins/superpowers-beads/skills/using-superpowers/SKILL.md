@@ -71,6 +71,37 @@ Missing `bd` and an uninitialized repository are separate states. If the CLI is
 present but no beads workspace is active, handle that as repository setup, not
 as a CLI installation problem.
 
+After `bd` is available, check whether a workspace is active:
+
+```bash
+bd where --json
+```
+
+If the command reports `no_beads_directory`, no beads workspace is active. Use a
+read-only git check to distinguish a repository without beads from a session
+outside a repository:
+
+```bash
+git rev-parse --show-toplevel >/dev/null 2>&1
+```
+
+If inside a repo, say:
+
+> The `bd` CLI is installed, but this repository does not have an active beads
+> workspace. I can continue without beads for this repo/session, use the repo's
+> existing tracker, or initialize beads only if you explicitly want that and
+> have permission to add it here.
+
+If outside a repo, say:
+
+> The `bd` CLI is installed, but this session is not inside a git repository or
+> an active beads workspace. I can continue without beads for this session, or
+> you can move me to a repository/workspace where beads should be used.
+
+If `bd` reports invalid or degraded metadata, do not repair, reinitialize,
+migrate, or restore automatically. Report the error concisely and continue
+without beads if the task can proceed safely.
+
 # Using Skills
 
 ## The Rule
