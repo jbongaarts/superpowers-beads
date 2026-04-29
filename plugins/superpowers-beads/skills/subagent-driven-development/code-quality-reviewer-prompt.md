@@ -6,16 +6,21 @@ Use this template when dispatching a code quality reviewer subagent.
 
 **Only dispatch after spec compliance review passes.**
 
-```
-Task tool (superpowers:code-reviewer):
-  Use template at ../requesting-code-review/code-reviewer.md
+Dispatch a generic agent (Claude `Task tool (general-purpose)` / Codex `spawn_agent(agent_type="worker", ...)`) and inline the contents of `../requesting-code-review/code-reviewer.md` as the prompt body, substituting the placeholders below. The plugin does not register a named `code-reviewer` agent — passing the template content inline keeps this prompt working on every supported harness.
 
-  WHAT_WAS_IMPLEMENTED: [from implementer's report]
-  PLAN_OR_REQUIREMENTS: Task N from [plan-file]
-  BASE_SHA: [commit before task]
-  HEAD_SHA: [current commit]
-  DESCRIPTION: [task summary]
-  TASK_ID: <task-id>
+```
+Task tool (general-purpose):
+  description: "Code quality review for Task N"
+  prompt: |
+    [Paste the full contents of ../requesting-code-review/code-reviewer.md here,
+     filled in with these values:]
+
+    WHAT_WAS_IMPLEMENTED: [from implementer's report]
+    PLAN_REFERENCE: Task N from [plan-file]
+    BASE_SHA: [commit before task]
+    HEAD_SHA: [current commit]
+    DESCRIPTION: [task summary]
+    ISSUE_ID: <task-id>
 ```
 
 **In addition to standard code quality concerns, the reviewer should check:**

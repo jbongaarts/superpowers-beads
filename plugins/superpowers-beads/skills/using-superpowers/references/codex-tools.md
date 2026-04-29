@@ -26,22 +26,23 @@ This enables `spawn_agent`, `wait`, and `close_agent` for skills like `dispatchi
 
 ## Named agent dispatch
 
-Claude Code skills reference named agent types like `superpowers:code-reviewer`.
-Codex does not have a named agent registry — `spawn_agent` creates generic agents
-from built-in roles (`default`, `explorer`, `worker`).
+This plugin does not register any named agents — every reviewer/implementer
+prompt dispatches `Task tool (general-purpose)` with inline content. Codex
+maps that directly to `spawn_agent(message=...)`.
 
-When a skill says to dispatch a named agent type:
+If a future skill (or an upstream skill you import) does reference a named
+plugin agent type (e.g. `Task tool (superpowers:code-reviewer)`):
 
-1. Find the agent's prompt file (e.g., `agents/code-reviewer.md` or the skill's
-   local prompt template like `code-quality-reviewer-prompt.md`)
-2. Read the prompt content
-3. Fill any template placeholders (`{BASE_SHA}`, `{WHAT_WAS_IMPLEMENTED}`, etc.)
-4. Spawn a `worker` agent with the filled content as the `message`
+1. Find the agent's prompt file (e.g., `agents/<name>.md` or the skill's
+   local prompt template).
+2. Read the prompt content.
+3. Fill any template placeholders (`{BASE_SHA}`, `{WHAT_WAS_IMPLEMENTED}`, etc.).
+4. Spawn a `worker` agent with the filled content as the `message`.
 
 | Skill instruction | Codex equivalent |
 |-------------------|------------------|
-| `Task tool (superpowers:code-reviewer)` | `spawn_agent(agent_type="worker", message=...)` with `code-reviewer.md` content |
 | `Task tool (general-purpose)` with inline prompt | `spawn_agent(message=...)` with the same prompt |
+| `Task tool (<plugin>:<agent>)` (named agent) | `spawn_agent(agent_type="worker", message=...)` with the named agent's prompt content |
 
 ### Message framing
 
