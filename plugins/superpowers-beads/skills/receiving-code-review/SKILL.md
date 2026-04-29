@@ -16,7 +16,15 @@ Code review requires technical evaluation, not emotional performance.
 
 ## Beads Workflow
 
-Identify the parent issue, epic, or PR-tracking bead for the work under review. If none exists, create one:
+For non-trivial reviews, pour the response formula to create the standard chain in one command:
+
+```bash
+bd mol pour superpowers-code-review-response --var title="<PR or review name>" --var review_source="<PR URL or summary>"
+```
+
+This creates the dependency-linked chain `intake → create-feedback-beads → triage → respond-in-code → verify → reply`. Claim the current step at the start of each phase and use the `create-feedback-beads` step to spawn one child per actionable review item.
+
+For a small review where the formula's chain would add noise, work on a single parent bead:
 
 ```bash
 bd create --type=task \
@@ -24,13 +32,13 @@ bd create --type=task \
   --description="<review source, PR/commit, and review summary>"
 ```
 
-For each review item:
+In either flow, for each review item:
 
-1. Add an evaluation comment to the parent:
+1. Add an evaluation comment to the parent (or the active step):
    ```bash
    bd comment <parent-id> "Review item <n>: <feedback>. Evaluation: <accepted|rejected|needs clarification>. Reason: <technical reason>."
    ```
-2. If accepted and still needs work, create a child task:
+2. If accepted and still needs work, create a child task under the parent (or under the formula's `create-feedback-beads` step):
    ```bash
    bd create --type=task --parent=<parent-id> \
      --title="Review item <n>: <short fix>" \

@@ -39,7 +39,9 @@ This structure informs the task decomposition. Each child issue should produce s
 
 ## Epic Structure
 
-If brainstorming already created an approved feature epic, use that epic and update missing fields instead of creating a duplicate:
+**If brainstorming poured the `superpowers-feature` formula**, claim its `spec`, `plan`, and `task` steps and update them with the content described below — the formula's `task` step is the parent for the execution beads created in the next section. Skip the `bd create --type=epic` block; the brainstorming epic remains the design/acceptance anchor and the formula chain hosts the implementation work.
+
+Otherwise, if brainstorming already created an approved feature epic, use that epic and update missing fields instead of creating a duplicate:
 
 ```bash
 bd show <epic-id>
@@ -137,13 +139,20 @@ Every child issue must contain the actual content an engineer needs. These are p
 
 ## Self-Review
 
-After creating the complete beads graph, review it before handoff.
+After creating the complete beads graph, run the deterministic checks first, then the judgment checks:
+
+```bash
+bd lint <epic-id>                              # required-section + placeholder check on the epic
+bd list --parent <epic-id> --json | jq -r '.[].id' | xargs -n1 bd lint   # same check on each child
+bd ready --parent <epic-id> --explain          # confirms the first ready tasks are unblocked
+```
+
+Fix anything those tools flag, then review for items they can't catch:
 
 1. **Spec coverage:** Skim each section or requirement in the spec. Can you point to a child issue or epic acceptance criterion that covers it? Add missing issues.
-2. **Placeholder scan:** Search epic and child issue text for the red flags in "No Placeholders". Fix them.
+2. **No-placeholder content:** Beyond required sections, watch for vague guidance the lint can't see — "add appropriate error handling", "Similar to Task N" without repeating the content, references to types/commands not defined in any prior issue. Fix inline.
 3. **Type consistency:** Check that types, method signatures, file paths, command names, and property names match across issues.
-4. **Dependency sanity:** Run `bd ready --parent <epic-id> --explain` and verify the first ready tasks are truly safe to start.
-5. **Issue readability:** Run `bd show <epic-id>` and `bd list --parent <epic-id> --long`; confirm an implementer can understand the plan without reading hidden session context.
+4. **Issue readability:** Run `bd show <epic-id>` and `bd list --parent <epic-id> --long`; confirm an implementer can understand the plan without reading hidden session context.
 
 If you find gaps, update the beads inline. Do not hand off an issue graph with known ambiguity.
 

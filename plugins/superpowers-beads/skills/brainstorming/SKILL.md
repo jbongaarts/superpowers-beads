@@ -125,15 +125,19 @@ The epic must contain:
 
 **Epic self-review:**
 
-After creating or updating the epic, look at it with fresh eyes:
+After creating or updating the epic, run the deterministic check first, then the judgment checks:
 
-1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
-2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
-3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
-4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
-5. **Acceptance check:** Are success criteria observable, and do verification commands exist?
+```bash
+bd lint <epic-id>     # required-section + placeholder check
+```
 
-Fix any issues inline. No need to re-review; just update the epic and move on.
+Fix anything `bd lint` reports, then look at the epic with fresh eyes for the items it can't catch:
+
+1. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
+2. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
+3. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+
+Fix issues inline. No need to re-review; just update the epic and move on.
 
 **User review gate:**
 
@@ -158,6 +162,16 @@ If markdown is explicitly requested, create it from `bd show <epic-id>` and stat
 
 - Invoke the writing-plans skill with the approved epic ID.
 - Do NOT invoke any other skill. writing-plans is the next step.
+
+**Optional: pour the feature formula for the standard implementation chain.**
+
+If the work follows the canonical feature cadence (spec → plan → task → implement → verify → finish), pour the formula after the epic is approved so each downstream skill can claim its step instead of creating fresh beads:
+
+```bash
+bd mol pour superpowers-feature --var title="<feature name>" --var component="<area>"
+```
+
+The formula's `brainstorm` step duplicates the work just done; close it as accepted with a pointer to the brainstorming epic ID. `writing-plans`, `executing-plans` / `subagent-driven-development`, and `finishing-a-development-branch` will pick up subsequent steps from `bd ready`. See `bd formula list` for other workflow templates.
 
 ## Key Principles
 

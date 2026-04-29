@@ -29,28 +29,22 @@ Do not create a skill for:
 
 ## Beads Workflow
 
-Use the existing work bead as the parent. If no bead exists, create one before writing:
+For non-trivial skill work, pour the existing formula to create the full chain in one command:
 
 ```bash
-bd create --type=epic --title="Author skill: <skill-name>" --description="<purpose, triggers, done criteria>"
-bd update <skill-issue> --claim
+bd mol pour superpowers-skill-authoring --var title="<skill change>" --var skill_name="<skill-dir-or-name>"
 ```
 
-For non-trivial skill work, create a child chain:
+This creates the dependency-linked chain `pressure-test → draft → validate → refactor → finish` with pre-filled descriptions. Claim and close each step as that phase completes:
 
 ```bash
-bd create --type=task --parent=<skill-issue> --title="Pressure-test <skill-name>" --description="Define trigger, anti-trigger, and failure scenarios; record baseline evidence."
-bd create --type=feature --parent=<skill-issue> --title="Draft <skill-name>" --description="Write the minimal skill and required supporting resources."
-bd create --type=task --parent=<skill-issue> --title="Validate <skill-name>" --description="Run realistic checks and record GREEN evidence."
-bd create --type=task --parent=<skill-issue> --title="Refactor <skill-name>" --description="Tighten triggers, loopholes, and context after validation."
-bd dep add <draft-id> <pressure-id>
-bd dep add <validate-id> <draft-id>
-bd dep add <refactor-id> <validate-id>
+bd update <step-id> --claim
+bd close <step-id> --reason="<phase outcome>"
 ```
 
-Claim and close each child as that phase completes. Do not use markdown checklists or in-session todo lists for skill state.
+Do not use markdown checklists or in-session todo lists for skill state.
 
-For a tiny edit where child beads would add noise, record the whole cycle on the parent:
+For a tiny edit where the formula's chain would add noise, work on the existing parent bead and record the whole cycle as one comment:
 
 ```bash
 bd comment <skill-issue> "Skill TDD evidence: RED <scenario> showed <baseline failure>; GREEN <validation> passed; REFACTOR <check> still passed."
