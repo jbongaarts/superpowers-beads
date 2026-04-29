@@ -10,6 +10,7 @@ The script checks:
 
 - `claude plugin validate .`
 - Codex skill discovery smoke check through `.agents/skills`
+- Codex plugin manifest and marketplace JSON parse checks
 - `git diff --check`
 - `bd orphans`
 - `bd stale`

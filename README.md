@@ -40,17 +40,25 @@ Claude Code:
 /plugin install superpowers-beads@superpowers-beads
 ```
 
-Codex from a checkout:
+Codex:
+
+```bash
+codex plugin marketplace add jbongaarts/superpowers-beads
+```
+
+For local checkout or fork testing:
 
 ```bash
 git clone https://github.com/jbongaarts/superpowers-beads.git
 cd superpowers-beads
+codex plugin marketplace add "$(pwd)"
 codex
 ```
 
 Codex scans `.agents/skills`, which links to the shared skill source under
-`plugins/superpowers-beads/skills`. Installable Codex marketplace packaging is
-tracked separately from this checkout-level compatibility work.
+`plugins/superpowers-beads/skills`. The repository also exposes a Codex plugin
+marketplace at `.agents/plugins/marketplace.json`; restart Codex after
+installing or upgrading if newly installed skills do not appear immediately.
 
 ## Requirements
 
@@ -62,7 +70,9 @@ For beads-backed persistence:
 If `bd` is not installed, the skills should continue without beads for that
 session rather than installing tools or initializing a repository automatically.
 If `bd` is installed but no beads workspace is active, initialization is still
-opt-in. See [docs/beads-startup.md](docs/beads-startup.md).
+opt-in. See [docs/beads-startup.md](docs/beads-startup.md). See
+[docs/codex-publishing.md](docs/codex-publishing.md) for Codex distribution
+details.
 
 ## Workflow formulas
 

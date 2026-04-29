@@ -15,6 +15,8 @@ run() {
 
 run claude plugin validate .
 run test -f .agents/skills/using-superpowers/SKILL.md
+run jq empty plugins/superpowers-beads/.codex-plugin/plugin.json
+run jq empty .agents/plugins/marketplace.json
 run git diff --check
 run bd orphans
 run bd stale
