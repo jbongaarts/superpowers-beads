@@ -6,12 +6,13 @@ Skills use Claude Code tool names. When you encounter these in a skill, use your
 |-----------------|------------------|
 | `Task` tool (dispatch subagent) | `spawn_agent` (see [Named agent dispatch](#named-agent-dispatch)) |
 | Multiple `Task` calls (parallel) | Multiple `spawn_agent` calls |
-| Task returns result | `wait` |
+| Task returns result | `wait_agent` |
 | Task completes automatically | `close_agent` to free slot |
-| `TodoWrite` (task tracking) | `update_plan` |
+| `TodoWrite` (task tracking) | `bd` when available; `update_plan` only as session-local fallback when beads is unavailable |
 | `Skill` tool (invoke a skill) | Skills load natively — just follow the instructions |
 | `Read`, `Write`, `Edit` (files) | Use your native file tools |
 | `Bash` (run commands) | Use your native shell tools |
+| `EnterPlanMode` / `ExitPlanMode` | No separate tool; stay in the current session and follow the planning instructions |
 
 ## Subagent dispatch requires multi-agent support
 
@@ -22,26 +23,27 @@ Add to your Codex config (`~/.codex/config.toml`):
 multi_agent = true
 ```
 
-This enables `spawn_agent`, `wait`, and `close_agent` for skills like `dispatching-parallel-agents` and `subagent-driven-development`.
+This enables `spawn_agent`, `wait_agent`, and `close_agent` for skills like `dispatching-parallel-agents` and `subagent-driven-development`.
 
 ## Named agent dispatch
 
-Claude Code skills reference named agent types like `superpowers:code-reviewer`.
-Codex does not have a named agent registry — `spawn_agent` creates generic agents
-from built-in roles (`default`, `explorer`, `worker`).
+This plugin does not register any named agents — every reviewer/implementer
+prompt dispatches `Task tool (general-purpose)` with inline content. Codex
+maps that directly to `spawn_agent(message=...)`.
 
-When a skill says to dispatch a named agent type:
+If a future skill (or an upstream skill you import) does reference a named
+plugin agent type (for example `Task tool (<plugin>:<agent>)`):
 
-1. Find the agent's prompt file (e.g., `agents/code-reviewer.md` or the skill's
-   local prompt template like `code-quality-reviewer-prompt.md`)
-2. Read the prompt content
-3. Fill any template placeholders (`{BASE_SHA}`, `{WHAT_WAS_IMPLEMENTED}`, etc.)
-4. Spawn a `worker` agent with the filled content as the `message`
+1. Find the agent's prompt file (e.g., `agents/<name>.md` or the skill's
+   local prompt template).
+2. Read the prompt content.
+3. Fill any template placeholders (`{BASE_SHA}`, `{WHAT_WAS_IMPLEMENTED}`, etc.).
+4. Spawn a `worker` agent with the filled content as the `message`.
 
 | Skill instruction | Codex equivalent |
 |-------------------|------------------|
-| `Task tool (superpowers:code-reviewer)` | `spawn_agent(agent_type="worker", message=...)` with `code-reviewer.md` content |
 | `Task tool (general-purpose)` with inline prompt | `spawn_agent(message=...)` with the same prompt |
+| `Task tool (<plugin>:<agent>)` (named agent) | `spawn_agent(agent_type="worker", message=...)` with the named agent's prompt content |
 
 ### Message framing
 

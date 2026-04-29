@@ -55,9 +55,9 @@ When the verification output is lengthy, show the important lines in your respon
 Examples:
 
 ```bash
-claude plugin validate .
-bd comment superpowers-beads-abc "Verification: claude plugin validate . -> exit 0; validation passed."
-bd close superpowers-beads-abc --reason="Ported skill; verification: claude plugin validate . passed."
+scripts/preflight.sh
+bd comment superpowers-beads-abc "Verification: scripts/preflight.sh -> exit 0; validation passed."
+bd close superpowers-beads-abc --reason="Ported skill; verification: scripts/preflight.sh passed."
 ```
 
 ```bash
