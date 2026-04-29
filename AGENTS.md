@@ -9,8 +9,16 @@ bd ready              # Find available work
 bd show <id>          # View issue details
 bd update <id> --claim  # Claim work atomically
 bd close <id>         # Complete work
-bd dolt push          # Push beads data to remote
+bd dolt push          # Attempt beads remote sync; currently skips because no Dolt remote is configured
 ```
+
+## Beads Remote Status
+
+This repository currently has no Dolt remote configured. Still run
+`bd dolt push` during session close so the workflow stays consistent, but the
+expected output is `No remote is configured — skipping.` Treat that message as
+informational, not a blocker. `git push` remains mandatory for code and
+`.beads/issues.jsonl` changes.
 
 ## Non-Interactive Shell Commands
 
