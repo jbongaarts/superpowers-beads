@@ -11,7 +11,8 @@ The script checks:
 - `claude plugin validate .`
 - Codex skill discovery smoke check through `.agents/skills`
 - Codex plugin manifest and marketplace JSON parse checks
-- `scripts/check-version-sync.sh` — `marketplace.json` and `plugin.json` carry the same plugin version
+- `scripts/check-version-sync.sh` — Claude `marketplace.json`, Claude `plugin.json`, and Codex `plugin.json` all carry the same plugin version
+- `scripts/check-codex-manifests.sh` — Codex plugin manifest and marketplace catalog have required fields, valid `./` source paths that resolve to existing directories, and a consistent plugin name
 - `scripts/check-skill-frontmatter.sh` — every `SKILL.md` has YAML frontmatter with non-empty `name` and `description`
 - `git diff --check`
 - `bd orphans`

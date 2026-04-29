@@ -146,17 +146,27 @@ appear immediately.
 
 ## Release Flow
 
-1. Update shared skill source.
-2. Update Claude and Codex manifests together.
-3. Run repo preflight and plugin validators.
-4. Tag the release, for example `v0.1.0`.
-5. Publish the tag and GitHub release notes.
-6. Attach checksums or generated artifacts if release automation produces them.
-7. Users install or upgrade from the repository marketplace.
+1. Update shared skill source on a branch and merge to `main`.
+2. Bump `version` in lockstep across:
+   - `.claude-plugin/marketplace.json`
+   - `plugins/superpowers-beads/.claude-plugin/plugin.json`
+   - `plugins/superpowers-beads/.codex-plugin/plugin.json`
+   `scripts/check-version-sync.sh` enforces this.
+3. Run `scripts/preflight.sh` locally.
+4. Push a signed tag matching the plugin version, e.g. `git tag v0.1.0 && git push origin v0.1.0`.
+5. `.github/workflows/release.yml` runs on `v*.*.*` tags and:
+   - re-asserts that the tag matches the plugin manifest version,
+   - re-runs the full preflight,
+   - builds a source tarball plus `.sha256` checksum,
+   - attaches build provenance via `actions/attest-build-provenance`,
+   - creates a GitHub Release with auto-generated notes and the tarball/checksum attached.
+6. Users install or upgrade from the repository marketplace; the same commit is the install source for both Claude (`/plugin marketplace add`) and Codex (`codex plugin marketplace add`).
 
-The first implementation can be source-based. A generated release artifact is
-optional until the repo has a real build step or until Codex marketplace
-support requires packaged assets.
+The release artifact is source-based: `git archive` of the tag tree. There is
+no separate build step, signing key, or registry to manage. Provenance is
+provided by GitHub Actions attestation, which can be verified with
+`gh attestation verify`. Sigstore/GPG signing or a packaged build artifact can
+be added later without changing the install path for consumers.
 
 ## Follow-Up Work
 
