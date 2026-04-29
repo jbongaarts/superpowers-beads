@@ -16,7 +16,10 @@ env:
 
 jobs:
   preflight:
-    name: Plugin preflight
+    # Display name kept as "Claude plugin validate" so the existing branch
+    # protection required-status-check still matches. The job now runs the
+    # full plugin preflight (claude validate + bd checks + helper scripts).
+    name: Claude plugin validate
     runs-on: ubuntu-latest
 
     steps:
@@ -38,6 +41,12 @@ jobs:
           tar -C "${tmpdir}" -xzf "${tmpdir}/${asset}"
           sudo install -m 0755 "${tmpdir}/bd" /usr/local/bin/bd
           bd --version
+
+      - name: Hydrate beads database from .beads/issues.jsonl
+        run: |
+          # The embedded Dolt database is gitignored, so seed a fresh one from
+          # the committed JSONL export before preflight runs bd commands.
+          bd init --non-interactive --quiet --skip-agents --skip-hooks --from-jsonl
 
       - name: Run plugin preflight
         run: scripts/preflight.sh
