@@ -13,7 +13,11 @@ preflight enforces this.
 
 - `superpowers-parallel-burst` formula now wired into `dispatching-parallel-agents` for the 4-lane prototype-burst sub-pattern.
 - `CHANGELOG.md` (this file).
+- `CONTRIBUTING.md` — onboarding, branch/PR flow, and skill-authoring guidance for new contributors.
+- `SECURITY.md` — vulnerability disclosure path and threat model.
 - `scripts/check-codex-manifests.sh` now validates marketplace `category` consistency across the Claude marketplace, Codex marketplace, and Codex plugin manifest.
+- `scripts/check-skill-references.sh` (wired into preflight) — verifies every `superpowers:<name>`, `./<file>`, `references/<file>`, and `skills/<plugin>/<file>` reference inside a SKILL.md resolves to an existing target.
+- `.github/workflows/release.yml` now handles pre-release tags (`v*.*.*-rc1`, `v*.*.*-beta.2`, etc.): strips the suffix for the manifest-version match and marks the GitHub Release as `--prerelease`.
 
 ### Changed
 

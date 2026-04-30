@@ -20,6 +20,7 @@ run jq empty .agents/plugins/marketplace.json
 run scripts/check-version-sync.sh
 run scripts/check-codex-manifests.sh
 run scripts/check-skill-frontmatter.sh
+run scripts/check-skill-references.sh
 run git diff --check
 run bd orphans
 run bd stale

@@ -156,7 +156,7 @@ appear immediately.
    `scripts/check-version-sync.sh` enforces this.
 3. Run `scripts/preflight.sh` locally.
 4. Push a signed tag matching the plugin version, e.g. `git tag v0.1.0 && git push origin v0.1.0`.
-5. `.github/workflows/release.yml` runs on `v*.*.*` tags and:
+5. `.github/workflows/release.yml` runs on `v*.*.*` and `v*.*.*-*` (pre-release) tags and:
    - re-asserts that the tag matches the plugin manifest version,
    - re-runs the full preflight,
    - builds a source tarball plus `.sha256` checksum,
