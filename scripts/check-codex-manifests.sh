@@ -119,6 +119,32 @@ if [ -n "$mk_plugin_name" ] && [ "$mk_plugin_name" != "null" ] &&
   failed=$((failed + 1))
 fi
 
+# Cross-manifest category consistency. The Claude marketplace lives outside this
+# script's primary scope, but category drift between Claude and Codex catalogs is
+# a recurring authoring mistake — check it here so a single command catches it.
+CLAUDE_MARKETPLACE=".claude-plugin/marketplace.json"
+if [ -f "$CLAUDE_MARKETPLACE" ]; then
+  claude_category="$(jq -r '.plugins[] | select(.name=="superpowers-beads") | .category' "$CLAUDE_MARKETPLACE" 2>/dev/null || true)"
+  codex_mk_category="$(jq -r '.plugins[0].category' "$CODEX_MARKETPLACE" 2>/dev/null || true)"
+  codex_mf_category="$(jq -r '.interface.category' "$CODEX_MANIFEST" 2>/dev/null || true)"
+  for label in "$CLAUDE_MARKETPLACE:.plugins[].category=$claude_category" \
+               "$CODEX_MARKETPLACE:.plugins[0].category=$codex_mk_category" \
+               "$CODEX_MANIFEST:.interface.category=$codex_mf_category"; do
+    value="${label##*=}"
+    if [ -z "$value" ] || [ "$value" = "null" ]; then
+      echo "check-codex-manifests: missing category at ${label%=*}" >&2
+      failed=$((failed + 1))
+    fi
+  done
+  if [ "$claude_category" != "$codex_mk_category" ] || [ "$claude_category" != "$codex_mf_category" ]; then
+    echo "check-codex-manifests: category mismatch across manifests:" >&2
+    echo "  $CLAUDE_MARKETPLACE plugins[].category = $claude_category" >&2
+    echo "  $CODEX_MARKETPLACE  plugins[0].category = $codex_mk_category" >&2
+    echo "  $CODEX_MANIFEST     interface.category = $codex_mf_category" >&2
+    failed=$((failed + 1))
+  fi
+fi
+
 if [ "$failed" -ne 0 ]; then
   echo "check-codex-manifests: $failed problem(s) found" >&2
   exit 1

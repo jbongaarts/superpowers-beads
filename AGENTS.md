@@ -43,7 +43,8 @@ superpowers-beads/
 ## Conventions
 
 - Plugin and skill names: kebab-case
-- Bump `version` in **both** `.claude-plugin/marketplace.json` and `plugins/superpowers-beads/.claude-plugin/plugin.json` together
+- Bump `version` in **all three** of `.claude-plugin/marketplace.json`, `plugins/superpowers-beads/.claude-plugin/plugin.json`, and `plugins/superpowers-beads/.codex-plugin/plugin.json` together — `scripts/check-version-sync.sh` enforces this
+- Marketplace `category` is `"Productivity"` across all three manifests; `scripts/check-codex-manifests.sh` enforces this
 - Source paths in marketplace files always start with `./`
 - Skills must have YAML frontmatter with at minimum `name` and `description`
 - Keep shared skill content under `plugins/superpowers-beads/skills`; `.agents/skills` should remain a link to that source, not a copied tree
@@ -69,6 +70,19 @@ This repository currently has no Dolt remote configured. Still run
 expected output is `No remote is configured — skipping.` Treat that message as
 informational, not a blocker. `git push` remains mandatory for code and
 `.beads/issues.jsonl` changes.
+
+### First-time setup
+
+After cloning, hydrate the local Dolt database from the committed JSONL and
+install the bd-managed git hooks:
+
+```bash
+bd init --from-jsonl   # rebuild the local DB from .beads/issues.jsonl
+```
+
+Run plain `bd init --from-jsonl` (without `--skip-hooks`) so the hooks under
+`.beads/hooks/` get wired into git via `core.hooksPath`. The hooks fire bd
+checks on commit/push/checkout; without them, beads sync is manual only.
 
 ## Non-Interactive Shell Commands
 

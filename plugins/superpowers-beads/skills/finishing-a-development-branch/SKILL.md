@@ -40,17 +40,18 @@ Stop. Fix the issue or create a follow-up blocker bead.
 
 ### Step 2: Run Beads Preflight
 
-`bd preflight` is the canonical pre-merge checklist for beads hygiene:
+Run beads hygiene checks before integration. If the repo defines its own preflight script (e.g. `scripts/preflight.sh`), prefer that — it bundles the project-specific gates plus the beads checks. Otherwise fall back to the bd commands directly:
 
 ```bash
+scripts/preflight.sh   # if the repo provides one
+# or, when no project-specific script exists:
 bd preflight
-bd preflight --check
 bd orphans
 bd stale
 bd list --status=in_progress
 ```
 
-If `bd preflight --check` is not configured for the repo or reports non-applicable checks, record that explicitly and run the applicable commands from the printed checklist manually.
+`bd preflight --check` ships a default checklist tuned for Go/Nix projects; if it reports non-applicable checks, record that explicitly and run the applicable commands from its printed checklist manually rather than treating the whole step as failed.
 
 Block merge or PR creation when:
 - There are orphaned issues that affect this work.

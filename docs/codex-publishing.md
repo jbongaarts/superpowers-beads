@@ -1,8 +1,8 @@
 # Codex Publishing and Installation Plan
 
 This document records the plan for making `superpowers-beads` installable by
-Codex users. It is about distribution and installation; making the shared skill
-content itself work well in Codex is tracked by `superpowers-beads-zr6`.
+Codex users. It is about distribution and installation; the cross-harness
+content work that paired with it landed under `superpowers-beads-zr6` (closed).
 
 ## Current Codex Surfaces
 
@@ -10,7 +10,9 @@ Codex has two relevant extension surfaces:
 
 - Skills are local authoring units. Codex reads skills from repository, user,
   admin, and system skill directories. This is useful for development, local
-  experimentation, and repo-scoped workflows.
+  experimentation, and repo-scoped workflows. Cross-harness skill content lives
+  in `plugins/superpowers-beads/skills/` and Codex discovers it through the
+  `.agents/skills` symlink.
 - Plugins are the installable distribution unit. A plugin can bundle skills,
   app mappings, MCP configuration, and presentation assets. Codex installs
   plugins from marketplaces.
@@ -170,10 +172,12 @@ be added later without changing the install path for consumers.
 
 ## Follow-Up Work
 
-The chosen plan requires implementation beads for:
+Open items:
 
-- Updating install docs when Codex marketplace behavior changes.
-- Extending CI/release validation to check Codex and Claude manifest/version
-  consistency.
-- Deciding later whether to submit to an official or curated Codex marketplace
-  once such a path is available for this plugin.
+- Update install docs whenever Codex marketplace behavior changes.
+- Decide whether to submit to an official or curated Codex marketplace if and
+  when such a path opens up for this plugin.
+
+CI/release validation of Codex and Claude manifest/version consistency landed
+in PR #25 (`scripts/check-codex-manifests.sh`, version-sync extended to all
+three manifests).
