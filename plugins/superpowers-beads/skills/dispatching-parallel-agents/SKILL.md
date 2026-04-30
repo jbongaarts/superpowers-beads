@@ -31,7 +31,15 @@ Do not use when:
 
 ## Step 1: Model The Work In Beads
 
-Use an existing parent epic when one exists. Otherwise create one:
+**Prototype burst (4 sibling approaches, then synthesize):** if the goal is to explore N≈4 alternative implementations of the same problem and pick one, pour the formula instead of building the graph by hand:
+
+```bash
+bd mol pour superpowers-parallel-burst --var title="<investigation>" --var output_contract="<what each lane should return>"
+```
+
+This creates `frame → lane-1..lane-4 (parallel) → synthesize → verify → finish` with the right dependencies. Skip to Step 2.
+
+**General parallel work** (N independent domains, no fixed shape): build the graph manually. Use an existing parent epic when one exists, otherwise create one:
 
 ```bash
 bd create --type=epic --title="<parallel work goal>" --description="<what done means>"
