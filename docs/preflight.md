@@ -14,6 +14,7 @@ The script checks:
 - `scripts/check-version-sync.sh` — Claude `marketplace.json`, Claude `plugin.json`, and Codex `plugin.json` all carry the same plugin version
 - `scripts/check-codex-manifests.sh` — Codex plugin manifest and marketplace catalog have required fields, valid `./` source paths that resolve to existing directories, and a consistent plugin name
 - `scripts/check-skill-frontmatter.sh` — every `SKILL.md` has YAML frontmatter with non-empty `name` and `description`
+- `scripts/check-skill-references.sh` — every `superpowers:<name>`, `./<file>.{md,sh,...}`, `references/<file>`, and `skills/<plugin>/<file>` reference inside a SKILL.md resolves to an existing skill or file
 - `git diff --check`
 - `bd orphans`
 - `bd stale`
