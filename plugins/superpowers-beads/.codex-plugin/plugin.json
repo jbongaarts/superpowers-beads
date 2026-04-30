@@ -1,6 +1,6 @@
 {
   "name": "superpowers-beads",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Beads-native rewrite of obra's superpowers skills, built around bd for cross-session continuity",
   "author": {
     "name": "Joseph Bongaarts",
