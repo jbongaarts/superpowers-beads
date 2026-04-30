@@ -9,10 +9,16 @@ preflight enforces this.
 
 ## Unreleased
 
+_No changes since v0.1.1._
+
+## v0.1.1 — 2026-04-30
+
+Maintenance release. Hardens the release pipeline and contributor surface; introduces no behavioral changes for skill consumers.
+
 ### Added
 
 - `superpowers-parallel-burst` formula now wired into `dispatching-parallel-agents` for the 4-lane prototype-burst sub-pattern.
-- `CHANGELOG.md` (this file).
+- `CHANGELOG.md`.
 - `CONTRIBUTING.md` — onboarding, branch/PR flow, and skill-authoring guidance for new contributors.
 - `SECURITY.md` — vulnerability disclosure path and threat model.
 - `scripts/check-codex-manifests.sh` now validates marketplace `category` consistency across the Claude marketplace, Codex marketplace, and Codex plugin manifest.
@@ -24,6 +30,8 @@ preflight enforces this.
 - Marketplace `category` normalized to `"Productivity"` across all three manifests (was `"engineering"` in `.claude-plugin/marketplace.json`).
 - `finishing-a-development-branch/SKILL.md` softened the "canonical preflight" language: prefers project-specific preflight (e.g. `scripts/preflight.sh`) when present, falls back to bd commands otherwise.
 - `docs/codex-publishing.md`: removed the manifest-consistency item from "Follow-Up Work" (delivered in v0.1.0 via PR #25); updated stale `superpowers-beads-zr6` reference; added a brief note on the `.agents/skills` symlink discovery path.
+- Trim of the always-loaded `using-superpowers/SKILL.md` (-32%) and other skills (-10% across the plugin), replacing DOT decision-flow graphs with numbered lists and compressing redundant prose. No prescribed behavior changed; see PR #26.
+- `bd lint` and the `superpowers-*` workflow formulas are now wired into the relevant skills (`writing-skills`, `brainstorming`, `writing-plans`, `systematic-debugging`, `receiving-code-review`, `executing-plans`); see PR #28.
 
 ## v0.1.0 — 2026-04-29
 
