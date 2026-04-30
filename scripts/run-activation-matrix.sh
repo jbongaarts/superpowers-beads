@@ -21,6 +21,10 @@
 
 set -euo pipefail
 
+# If the script exits unexpectedly, surface the failing line so debugging
+# doesn't require re-running with bash -x. Triggered by set -e via ERR trap.
+trap 'rc=$?; echo "" >&2; echo "run-activation-matrix.sh: aborted at line $LINENO with exit $rc" >&2' ERR
+
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MATRIX="$REPO_ROOT/docs/skill-activation-matrix.md"
 PLUGIN_DIR="$REPO_ROOT/plugins/superpowers-beads"
@@ -224,7 +228,10 @@ while IFS=$'\t' read -r section row prompt expected notes; do
 
   # Comparator: drop using-superpowers from activated for matching purposes
   # (it's the always-on orchestrator and not relevant unless explicitly expected).
-  filtered="$(printf '%s' "$activated" | tr ',' '\n' | grep -v '^using-superpowers$' | paste -sd, -)"
+  # Use awk rather than grep -v: grep exits 1 when no lines match, which under
+  # set -e + pipefail kills the script on rows where the only activation was
+  # using-superpowers (or there was no activation at all — the "no skill" case).
+  filtered="$(printf '%s' "$activated" | tr ',' '\n' | awk 'NF && $0 != "using-superpowers"' | paste -sd, -)"
 
   expected_lc="$(printf '%s' "$expected" | tr '[:upper:]' '[:lower:]')"
   outcome=""
