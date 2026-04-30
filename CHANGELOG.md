@@ -9,7 +9,9 @@ preflight enforces this.
 
 ## Unreleased
 
-_No changes since v0.1.1._
+### Added
+
+- `docs/skill-activation-matrix.md` — manual matrix of trigger and anti-trigger prompts for every skill, run before any release that touches a `SKILL.md`. Validates *behavior* where preflight only validates *packaging*.
 
 ## v0.1.1 — 2026-04-30
 

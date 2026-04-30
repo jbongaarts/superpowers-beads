@@ -1,0 +1,195 @@
+# Skill Activation Matrix
+
+This document is the behavioral acceptance test for the plugin's skills. Manifest checks (frontmatter, version sync, JSON schema) verify that the *packaging* is correct; this matrix verifies that each skill *actually fires* on prompts that should match it and *stays out of the way* on prompts that should not.
+
+## How to run it
+
+This is a manual or agent-driven check. It is not part of `scripts/preflight.sh` because activation depends on the agent harness interpreting `description` fields, not on anything inspectable in CI.
+
+1. Install the plugin in a clean session of the harness under test (Claude Code, Codex, Copilot CLI, Gemini CLI). Use a checkout at the tag being released, or `/plugin marketplace add jbongaarts/superpowers-beads` followed by `/plugin install superpowers-beads@superpowers-beads`.
+2. For each row below, paste the **Prompt** verbatim into a new conversation.
+3. Observe whether the harness activates the **Expected skill** (or nothing, for anti-triggers). For Claude Code, the model announces "Using \[skill\] to ..." per `using-superpowers`. For other harnesses, the equivalent activation indicator.
+4. Record the actual activation (or "no skill") next to the expected one. A row passes only when the actual matches the expected.
+5. Any mismatch is a release-blocking regression. Either tighten the skill's frontmatter description, fix the false-positive overlap with another skill, or revise the expected outcome with rationale.
+
+A full matrix run takes roughly 15–20 minutes per harness. Run it before any release that includes a SKILL.md edit.
+
+## Pre-flight
+
+Before running the matrix:
+
+```bash
+scripts/preflight.sh                           # mechanical checks must be clean
+bd lint                                         # no missing required sections
+git rev-parse HEAD                              # record the commit being tested
+```
+
+Record the commit and harness in the run log at the bottom of this file.
+
+## Matrix
+
+Each section lists a skill with its frontmatter `description`, then trigger prompts (should activate the skill) and anti-trigger prompts (should *not* activate the skill, or should activate a different one).
+
+When a prompt explicitly says "(within an active conversation)" treat it as the user's first message after some prior context; otherwise treat it as the very first message in a new session.
+
+### using-superpowers
+
+Description: Use when starting any conversation - establishes how to find and activate skills before any response, including clarifying questions.
+
+This skill is meant to fire at session start every time. It is the orchestrator for all other activations.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | _(any first message in a new session)_ | activates immediately | Pre-condition for every other row in this matrix. |
+
+### brainstorming
+
+Description: Use when starting any creative work - creating features, building components, adding functionality, or modifying behavior.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "I want to add a CSV export feature to the reports page. How should we approach this?" | brainstorming | Clear creative-work trigger. |
+| 2 | "Help me design a notification system for inactive users." | brainstorming | "Design" + "system" — should brainstorm before any planning skill. |
+| 3 | "What does this regex on line 42 of validators.py match?" | no skill (or short answer) | Pure read/explain question, not creative work. Brainstorming should NOT fire. |
+| 4 | "Fix the failing test in `payment_test.go`." | systematic-debugging or test-driven-development | Bugfix path; brainstorming should NOT fire. |
+
+### writing-plans
+
+Description: Use when you have a spec or requirements for a multi-step task, before touching code.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "I have an approved feature epic `superpowers-beads-abc`. Write the implementation plan." | writing-plans | Direct trigger: spec exists, plan needed. |
+| 2 | "Here's the design doc — break it into implementation tasks." | writing-plans | Spec → task graph translation. |
+| 3 | "What's a good architecture for an event bus?" | brainstorming | Open-ended design exploration; writing-plans should NOT fire (no approved spec yet). |
+
+### executing-plans
+
+Description: Use when you have a beads epic of planned issues to execute in a separate session with review checkpoints.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "Start working through epic `superpowers-beads-abc`. No subagents available; checkpoint with me between issues." | executing-plans | Inline execution, fresh session. |
+| 2 | "Resume the in-progress feature work from the last session." | executing-plans | Resume-via-`bd ready` is this skill's claim. |
+| 3 | "Pick up the next ready issue and dispatch a subagent for it." | subagent-driven-development | Subagent dispatch path; executing-plans should NOT fire. |
+
+### subagent-driven-development
+
+Description: Use when executing bd-tracked tasks with independent issues in the current session.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "I have an epic with 5 ready independent tasks. Run them in this session, one subagent per task, with reviews between." | subagent-driven-development | Independent tasks + same session = exact match. |
+| 2 | "Dispatch an implementer subagent for `superpowers-beads-foo`, then review." | subagent-driven-development | Direct mention of the per-task pattern. |
+| 3 | "These three tasks share a lot of state; I'll do them myself in order." | no skill (or executing-plans if a sequential workflow is needed) | Tightly-coupled work — subagent-driven should NOT fire. |
+
+### dispatching-parallel-agents
+
+Description: Use when facing 2 or more independent tasks, failures, or work domains that can proceed concurrently without shared state or sequential dependencies.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "Three flaky test files failing for what look like unrelated reasons. Investigate them in parallel." | dispatching-parallel-agents | Multiple independent failures, concurrent. |
+| 2 | "Prototype four different approaches to background job retries and pick the best one." | dispatching-parallel-agents | Should also surface `superpowers-parallel-burst` formula. |
+| 3 | "Two failing tests, but they probably share a root cause." | systematic-debugging | Shared root cause likely → debug, don't fan out. |
+
+### using-git-worktrees
+
+Description: Use when starting feature work that needs an isolated workspace, dispatching parallel agents, or executing an implementation plan.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "Set up an isolated workspace for `superpowers-beads-abc` so I can work on it without disturbing my main checkout." | using-git-worktrees | Direct trigger: isolated workspace. |
+| 2 | "Start implementing the auth feature; I want it on its own branch." | using-git-worktrees → writing-plans/executing-plans | Worktree first, then planning/execution skill. |
+| 3 | "What does `git worktree` do?" | no skill | Definition question, not workflow trigger. |
+
+### test-driven-development
+
+Description: Use when implementing any feature, bugfix, refactor, or behavior change before writing production code.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "Add a `formatBytes(n)` helper that returns human-readable sizes." | test-driven-development | New behavior → RED first. |
+| 2 | "Refactor `Calculator.add` to handle BigInt." | test-driven-development | Refactor with behavior change. |
+| 3 | "Update the README to mention the new `formatBytes` helper." | no skill | Documentation-only change. |
+
+### systematic-debugging
+
+Description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "`payment_test.go` is failing intermittently in CI. Investigate." | systematic-debugging | Intermittent failure = classic Phase-1 trigger. |
+| 2 | "Users are seeing 500s on `/checkout` since this morning." | systematic-debugging | Production symptom, root-cause investigation. |
+| 3 | "Just push the fix already, we know what it is." | systematic-debugging (with pushback) | Pressure prompt — skill should resist the shortcut and trigger Phase 1 anyway. |
+
+### verification-before-completion
+
+Description: Use when about to claim work is complete, fixed, or passing, or before committing, pushing, or creating PRs.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "Tests should pass now, going to commit." | verification-before-completion | "Should pass" is a red flag this skill calls out by name. |
+| 2 | "Done with the feature; let me push." | verification-before-completion | Pre-push completion claim. |
+| 3 | "What's the difference between `git push` and `git push --force`?" | no skill | Knowledge question, no completion claim. |
+
+### requesting-code-review
+
+Description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "Feature is done. Get me a code review on the diff before I merge." | requesting-code-review | Direct trigger. |
+| 2 | "Dispatch a reviewer to check task `superpowers-beads-foo` against its acceptance criteria." | requesting-code-review | Per-task review pattern. |
+| 3 | "I just got code review feedback. Where do I start?" | receiving-code-review | Reception, not request. |
+
+### receiving-code-review
+
+Description: Use when receiving code review feedback, before implementing suggestions - especially when feedback seems unclear or technically questionable.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "Reviewer said my error handling is wrong but I think it's fine. How should I respond?" | receiving-code-review | Pushback evaluation. |
+| 2 | "PR has six review comments. Plan the response." | receiving-code-review | Multi-item evaluation triage. |
+| 3 | "I want to dispatch a reviewer for the change I just made." | requesting-code-review | Request path. |
+
+### finishing-a-development-branch
+
+Description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "All tasks closed, tests green. What's next — PR or local merge?" | finishing-a-development-branch | Integration choice prompt. |
+| 2 | "Wrap up the feature branch and ship it." | finishing-a-development-branch | Direct trigger. |
+| 3 | "We're halfway through the implementation tasks." | executing-plans | Not yet finishing. |
+
+### writing-skills
+
+Description: Use when creating a new skill, changing an existing skill, or validating whether a skill should trigger before deployment.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "Add a new skill for cherry-picking commits across long-lived branches." | writing-skills | Skill authoring. |
+| 2 | "Tighten the `verification-before-completion` description so it doesn't over-trigger on pure code-reading." | writing-skills | Skill change. |
+| 3 | "Should I add a skill for handling Friday deploys?" | writing-skills (validation step: is this reusable?) | Skill viability check. |
+| 4 | "What does `verification-before-completion` cover?" | no skill | Definition question, not authoring. |
+
+## Cross-cutting checks
+
+These verify that the orchestration story holds, not any single skill in isolation.
+
+| # | Behavior to verify |
+|---|---|
+| 1 | First prompt of every session triggers `using-superpowers` before any other skill. |
+| 2 | When two skills could plausibly fire (e.g., a feature request that mentions a failing test), `superpowers:using-superpowers` priority rules pick process > implementation: brainstorming or systematic-debugging fires before TDD. |
+| 3 | An "I'm done" message after writing code consistently fires `verification-before-completion`, regardless of how confident the preceding turn sounded. |
+| 4 | If the user says "skip the skill, just do it", the agent still announces the relevant skill and only opts out with explicit, recorded user override (per `using-superpowers` Red Flags table). |
+| 5 | Subagent dispatched for an implementer task does *not* re-fire `using-superpowers` (the `<SUBAGENT-STOP>` block at the top of the skill should suppress it). |
+
+## Run log
+
+Append a row per matrix run. Failed rows must be linked to a bd issue or PR before the run is considered closed.
+
+| Date | Commit | Harness | Result | Notes |
+|------|--------|---------|--------|-------|
+| _(no runs recorded yet)_ |  |  |  |  |

@@ -108,6 +108,8 @@ scripts/preflight.sh
 
 CI runs the same script on every PR and on `main`. See [`docs/preflight.md`](./docs/preflight.md) for the individual checks.
 
+For changes that touch any `SKILL.md`, also run the skill activation matrix manually before merging — preflight verifies *packaging* but not *behavior*. See [`docs/skill-activation-matrix.md`](./docs/skill-activation-matrix.md) for the prompts and procedure. A run takes ~15 minutes per harness.
+
 ## Releasing
 
 Releases are tag-driven. Bump version in **all three** manifests in lockstep:
