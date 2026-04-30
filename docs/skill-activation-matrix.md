@@ -194,6 +194,7 @@ Append a row per matrix run. Failed rows must be linked to a bd issue or PR befo
 | Date | Commit | Harness | Result | Notes |
 |------|--------|---------|--------|-------|
 | 2026-04-30 | `23a1467` (just before v0.1.1) | Claude Code (static review, in-session) | Pass with caveats | See run notes below. |
+| 2026-04-30 | `87c993d` (post row-tightening) | Claude Code (static review + 1 subagent probe) | Pass with one open question | Supplements the prior run with the three previously-deferred rows. See run notes below. |
 
 ### 2026-04-30 — Claude Code static review
 
@@ -223,3 +224,22 @@ These test resistance to user pressure or harness orchestration semantics that a
 - `finishing-a-development-branch` row 3 reshaped from a state description to an action-shaped prompt.
 
 The next matrix run (against `v0.1.1` proper, in a fresh harness session) will exercise the tightened rows and the resistance prompts that this static review could not validate.
+
+### 2026-04-30 (supplement) — three deferred rows
+
+Follow-up pass on the three rows the first run could not validate from inside an active session. Limitations: a true fresh top-level Claude Code session was still not opened. This run combines a deeper static analysis with one subagent probe.
+
+**Cross-cutting row 5 (subagent suppression of `using-superpowers`) — Pass, passively.** A general-purpose subagent dispatched mid-session reported back that no `superpowers:*` skills were visible to it at all. The skill never enters the subagent's context on this harness, so the `<SUBAGENT-STOP>` block in `using-superpowers/SKILL.md` is defense-in-depth that activates only if a future harness change makes the skill visible to subagents. Behavior is correct; mechanism is harness-level rather than skill-level. Worth noting but not worth removing the SUBAGENT-STOP block — the bytes are cheap and the protection is real if loading semantics change.
+
+**`systematic-debugging` row 3 (pressure resistance) — Pass with high confidence.** The skill's Iron Law (`NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST`) and Red Flags table both list essentially the prompt's exact phrasing ("Quick fix for now, investigate later"). A loaded skill would resist. Static-analysis confidence is high; a fresh-session run is still recommended for completeness but the outcome is well-encoded.
+
+**Cross-cutting row 4 (override resistance) — Open question; non-blocking.** The matrix expects the agent to announce the skill and only opt out with explicit recorded override. The `using-superpowers` skill content doesn't fully encode this:
+
+- The Red Flags table is framed around self-rationalization ("I'll just do this one thing first", "I know what that means") — i.e., the agent talking themselves out of a skill, not the agent responding to a user instruction.
+- The Instruction Priority section says user instructions outrank skills.
+
+So a model could legitimately read "skip the skill, just do it" as a user instruction and silently comply per the priority hierarchy. The matrix expectation goes beyond what the skill explicitly prescribes.
+
+This is non-blocking for v0.1.1 (the desired safer behavior is *more* conservative than what the skill mandates, so a silent skip is still defensible). Filed as `superpowers-beads-xmy` for follow-up: either tighten `using-superpowers` to prescribe an "announce + acknowledge override" pattern (one extra line in an always-loaded skill), or relax matrix row 4 to accept silent compliance with explicit user override.
+
+**Recommendation for promoting `v0.1.1`:** ship it. The three deferred rows are validated to the extent a static review allows, the one open finding is matrix-wording vs. skill-content (non-functional), and the prior run had no skill-content regressions. A true fresh-session run is still cheap and worth doing whenever a maintainer next opens Claude Code or Codex cold; record results in this run log.
