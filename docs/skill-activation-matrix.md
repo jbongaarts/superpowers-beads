@@ -100,8 +100,9 @@ Description: Use when starting feature work that needs an isolated workspace, di
 | # | Prompt | Expected | Notes |
 |---|---|---|---|
 | 1 | "Set up an isolated workspace for `superpowers-beads-abc` so I can work on it without disturbing my main checkout." | using-git-worktrees | Direct trigger: isolated workspace. |
-| 2 | "Start implementing the auth feature; I want it on its own branch." | using-git-worktrees → writing-plans/executing-plans | Worktree first, then planning/execution skill. |
-| 3 | "What does `git worktree` do?" | no skill | Definition question, not workflow trigger. |
+| 2 | "Plan for `superpowers-beads-abc` is approved. Start implementing on its own branch." | using-git-worktrees → executing-plans | Plan exists → worktree first, then execution skill. (If no plan existed, `brainstorming` should fire first — that's a different test case below.) |
+| 3 | "Build me a notification system on its own branch." | brainstorming | No spec yet — `brainstorming` fires before any worktree/planning skill. |
+| 4 | "What does `git worktree` do?" | no skill | Definition question, not workflow trigger. |
 
 ### test-driven-development
 
@@ -161,7 +162,7 @@ Description: Use when implementation is complete, all tests pass, and you need t
 |---|---|---|---|
 | 1 | "All tasks closed, tests green. What's next — PR or local merge?" | finishing-a-development-branch | Integration choice prompt. |
 | 2 | "Wrap up the feature branch and ship it." | finishing-a-development-branch | Direct trigger. |
-| 3 | "We're halfway through the implementation tasks." | executing-plans | Not yet finishing. |
+| 3 | "Halfway through the implementation tasks — keep me on this rail." | executing-plans | Action-shaped, not finishing yet. |
 
 ### writing-skills
 
@@ -192,4 +193,33 @@ Append a row per matrix run. Failed rows must be linked to a bd issue or PR befo
 
 | Date | Commit | Harness | Result | Notes |
 |------|--------|---------|--------|-------|
-| _(no runs recorded yet)_ |  |  |  |  |
+| 2026-04-30 | `23a1467` (just before v0.1.1) | Claude Code (static review, in-session) | Pass with caveats | See run notes below. |
+
+### 2026-04-30 — Claude Code static review
+
+This was a static review against `v0.1.1-rc1` content, performed from inside an active Claude Code session rather than a fresh top-level conversation. The reviewer (the agent) had access to all 14 skill descriptions but had prior context from this session. A fresh-session run is still recommended before promoting `v0.1.1`.
+
+**Method:** for each prompt, the reviewer recorded which skill they would activate based solely on the prompt text against the current frontmatter `description` fields, then compared to the **Expected** column. No mismatches were forced — predictions were committed before checking the expected column for borderline rows.
+
+**Rows that match expected (50):** every row except the two below.
+
+**Borderline rows that warrant tightening (2):**
+
+1. **`using-git-worktrees` row 2** — "Start implementing the auth feature; I want it on its own branch." If an approved plan exists, the expected `using-git-worktrees → writing-plans/executing-plans` chain is right. If no plan exists, `brainstorming` should fire first. The prompt doesn't disambiguate. Either tighten the prompt to add a precondition (`(plan already exists)`) or split into two rows that test both states explicitly.
+
+2. **`finishing-a-development-branch` row 3** — "We're halfway through the implementation tasks." This describes state without requesting action. A model may legitimately respond with a clarifying question ("What would you like to do next?") and fire no skill. Tighten to an action-shaped prompt, e.g. "Halfway through the tasks — keep me on this rail" → expect `executing-plans`.
+
+**Rows that need fresh-session exercise to truly validate:**
+
+- `systematic-debugging` row 3 (pressure prompt, "Just push the fix already").
+- Cross-cutting row 4 (override resistance, "skip the skill, just do it").
+- Cross-cutting row 5 (subagent suppression of `using-superpowers`).
+
+These test resistance to user pressure or harness orchestration semantics that a static review cannot fully validate. Re-run them in a fresh top-level session before promoting `v0.1.1`.
+
+**No release-blocking failures.** The two borderline rows were matrix wording issues, not skill-content regressions. Both have been tightened in this PR:
+
+- `using-git-worktrees` row 2 now states the precondition (plan exists); a new row 3 covers the no-plan case where `brainstorming` should fire first.
+- `finishing-a-development-branch` row 3 reshaped from a state description to an action-shaped prompt.
+
+The next matrix run (against `v0.1.1` proper, in a fresh harness session) will exercise the tightened rows and the resistance prompts that this static review could not validate.

@@ -12,6 +12,7 @@ preflight enforces this.
 ### Added
 
 - `docs/skill-activation-matrix.md` — manual matrix of trigger and anti-trigger prompts for every skill, run before any release that touches a `SKILL.md`. Validates *behavior* where preflight only validates *packaging*.
+- First run-log entry against `v0.1.1-rc1` (Claude Code, static review): all rows passed with two matrix-wording tightenings (`using-git-worktrees` row 2 now states the plan-exists precondition with a new row 3 for the no-plan case; `finishing-a-development-branch` row 3 reshaped to an action-shaped prompt).
 
 ## v0.1.1 — 2026-04-30
 
