@@ -129,7 +129,7 @@ Description: Use when starting feature work that needs an isolated workspace, di
 | # | Prompt | Expected | Notes |
 |---|---|---|---|
 | 1 | "Set up an isolated workspace for `superpowers-beads-abc` so I can work on it without disturbing my main checkout." | using-git-worktrees | Direct trigger: isolated workspace. |
-| 2 | "Plan for `superpowers-beads-abc` is approved. Start implementing on its own branch." | using-git-worktrees → executing-plans | Plan exists → worktree first, then execution skill. (If no plan existed, `brainstorming` should fire first — that's a different test case below.) |
+| 2 | "Plan for `superpowers-beads-abc` is approved. Start implementing on its own branch." | using-git-worktrees or executing-plans | Plan exists → either skill is a reasonable entry point. Empirically the model picks one or the other depending on phrasing/temperature; neither skill chains automatically into the other and the matrix should not require a chain that isn't encoded in skill content. (If no plan existed, `brainstorming` should fire first — that's a different test case below.) |
 | 3 | "Build me a notification system on its own branch." | brainstorming | No spec yet — `brainstorming` fires before any worktree/planning skill. |
 | 4 | "What does `git worktree` do?" | no skill | Definition question, not workflow trigger. |
 

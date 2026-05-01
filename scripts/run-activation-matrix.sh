@@ -137,9 +137,13 @@ run_claude_row() {
   # --plugin-dir: load this repo's plugin directly.
   # --output-format stream-json + --verbose: emit one JSON object per event so
   #   we can detect Skill tool_use invocations.
-  # --max-budget-usd: per-row safety net. Tightened from 0.50 to 0.15 — an
-  #   activation decision plus the model "stopping" should run well under that;
-  #   the tighter cap helps cut runaway rows that keep doing follow-up tool use.
+  # --max-budget-usd: per-row safety net only. Set high enough that legitimate
+  #   activation work (e.g. executing-plans firing, then doing its initial
+  #   investigation per the skill's "stop and ask" protocol) is not cut off.
+  #   The earlier 0.15 cap masked real activation behavior on rows where the
+  #   model legitimately invoked a skill that does extensive checking. Wall-
+  #   clock parallelism (--jobs) is the actual lever for keeping runs fast,
+  #   not budget pressure.
   # --permission-mode bypassPermissions: avoid hanging on permission prompts
   #   in non-interactive runs. The user is opting in by running this script.
   claude -p \
@@ -147,7 +151,7 @@ run_claude_row() {
     --plugin-dir "$PLUGIN_DIR" \
     --output-format stream-json \
     --verbose \
-    --max-budget-usd 0.15 \
+    --max-budget-usd 1.00 \
     --permission-mode bypassPermissions \
     "$prompt" \
     > "$raw_path" 2>"$raw_path.stderr" || true
