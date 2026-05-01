@@ -78,7 +78,7 @@ jobs:
           echo "checksum=${archive}.sha256" >> "$GITHUB_OUTPUT"
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: ${{ steps.archive.outputs.archive }}
 
