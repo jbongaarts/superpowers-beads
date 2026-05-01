@@ -50,8 +50,10 @@ jobs:
 
       - name: Run plugin preflight
         env:
-          # Allow the single bead currently driving the active PR to be
-          # in_progress without failing CI. preflight.sh already enforces
-          # that this is the only in-progress bead.
-          ALLOW_IN_PROGRESS: superpowers-beads-isu
+          # Comma-separated allowlist of beads that may be in_progress without
+          # failing CI. preflight.sh fails if any bead outside the allowlist
+          # is in_progress. Remove entries as the underlying work merges:
+          # - superpowers-beads-isu: matrix runner speedup verification
+          # - superpowers-beads-ei7: GH Actions Node 24 bump
+          ALLOW_IN_PROGRESS: superpowers-beads-isu,superpowers-beads-ei7
         run: scripts/preflight.sh
