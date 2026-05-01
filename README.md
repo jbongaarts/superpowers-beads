@@ -27,6 +27,7 @@ Active. Skills currently shipped:
 - `verification-before-completion` — gate every completion claim on fresh verification recorded on the bead
 - `requesting-code-review` / `receiving-code-review` — dispatch and triage reviews with `bd` as the persistent record
 - `finishing-a-development-branch` — verify, run preflight, integrate, and clean up
+- `cherry-picking-across-branches` — scope, order, and verify backports / forward-ports between long-lived branches with `bd` as the audit trail
 - `writing-skills` — TDD for skills themselves
 
 Open work is tracked as `bd` issues — run `bd ready` to see what's queued.

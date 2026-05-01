@@ -49,11 +49,7 @@ jobs:
           bd bootstrap --yes --quiet
 
       - name: Run plugin preflight
-        env:
-          # Comma-separated allowlist of beads that may be in_progress without
-          # failing CI. preflight.sh fails if any bead outside the allowlist
-          # is in_progress. Remove entries as the underlying work merges:
-          # - superpowers-beads-isu: matrix runner speedup verification
-          # - superpowers-beads-ei7: GH Actions Node 24 bump
-          ALLOW_IN_PROGRESS: superpowers-beads-isu,superpowers-beads-ei7
+        # ALLOW_IN_PROGRESS (comma-separated) lets specific in-progress beads
+        # pass the preflight gate while their PRs are open. Set when needed,
+        # remove once the underlying work merges.
         run: scripts/preflight.sh
