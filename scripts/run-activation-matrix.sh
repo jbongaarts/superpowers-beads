@@ -130,27 +130,57 @@ echo "Parsed $total_rows runnable rows from $(basename "$MATRIX")"
 
 # Run a single prompt in a fresh claude session and emit NDJSON to $1 (raw path).
 # Returns 0 on success regardless of activation outcome (we capture, not judge).
+#
+# Side-effect containment: each row runs in a throwaway temp directory with its
+# own git and bd workspace. With --permission-mode bypassPermissions the model
+# can run any tool; without sandboxing it can claim beads, create worktrees,
+# and commit to this repo. The sandbox confines those mutations to the temp
+# dir so the matrix can't contaminate the parent checkout.
 run_claude_row() {
   local raw_path="$1"; shift
   local prompt="$1"; shift
+  local sandbox
+  sandbox="$(mktemp -d -t spbeads-matrix-XXXXXXXX)"
+
+  # Initialize a throwaway git + bd workspace inside the sandbox so any
+  # `bd ...` or `git ...` calls a model makes during activation operate on
+  # this empty workspace, not on the parent repo. The bd init flags suppress
+  # interactive prompts and skip CLAUDE.md / git-hook installation, both of
+  # which would themselves contaminate the sandbox.
+  (
+    cd "$sandbox" || exit 1
+    git init -q . >/dev/null 2>&1 || true
+    git -c user.name=matrix -c user.email=matrix@local commit \
+      --allow-empty -q -m "matrix sandbox" >/dev/null 2>&1 || true
+    bd init --non-interactive --quiet \
+            --skip-agents --skip-hooks --role contributor \
+      >/dev/null 2>&1 || true
+  )
+
   # --setting-sources user: skip project hooks (bd prime) for clean activation.
-  # --plugin-dir: load this repo's plugin directly.
+  # --plugin-dir: load this repo's plugin directly (absolute path so cwd change
+  #   does not break the plugin lookup).
   # --output-format stream-json + --verbose: emit one JSON object per event so
   #   we can detect Skill tool_use invocations.
-  # --max-budget-usd: per-row safety net. Tightened from 0.50 to 0.15 — an
-  #   activation decision plus the model "stopping" should run well under that;
-  #   the tighter cap helps cut runaway rows that keep doing follow-up tool use.
+  # --max-budget-usd: per-row cost safety net (NOT a side-effect circuit
+  #   breaker — that's what the sandbox is for). Set high enough that long-
+  #   tail rows doing legitimate post-activation investigation are not cut off.
   # --permission-mode bypassPermissions: avoid hanging on permission prompts
-  #   in non-interactive runs. The user is opting in by running this script.
-  claude -p \
-    --setting-sources user \
-    --plugin-dir "$PLUGIN_DIR" \
-    --output-format stream-json \
-    --verbose \
-    --max-budget-usd 0.15 \
-    --permission-mode bypassPermissions \
-    "$prompt" \
-    > "$raw_path" 2>"$raw_path.stderr" || true
+  #   in non-interactive runs. Safe because the sandbox contains the blast.
+  (
+    cd "$sandbox" || exit 1
+    claude -p \
+      --setting-sources user \
+      --plugin-dir "$PLUGIN_DIR" \
+      --output-format stream-json \
+      --verbose \
+      --max-budget-usd 1.00 \
+      --permission-mode bypassPermissions \
+      "$prompt" \
+      > "$raw_path" 2>"$raw_path.stderr" || true
+  )
+
+  rm -rf "$sandbox"
 }
 
 # Run a single prompt in a fresh codex session and emit JSONL to $1 (raw path).
