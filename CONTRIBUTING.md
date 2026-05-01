@@ -112,22 +112,17 @@ For changes that touch any `SKILL.md`, also run the skill activation matrix manu
 
 ## Releasing
 
-Releases are tag-driven. Bump version in **all three** manifests in lockstep:
+See [`RELEASING.md`](./RELEASING.md) for the full release procedure: cadence, SemVer mapping for skill changes, hotfix protocol, rollback / withdrawn-release remediation, and skill / `bd` deprecation policy.
 
-- `.claude-plugin/marketplace.json`
-- `plugins/superpowers-beads/.claude-plugin/plugin.json`
-- `plugins/superpowers-beads/.codex-plugin/plugin.json`
-
-Tag and push:
+Quick reference: bump the version in all three manifests in lockstep
+(`.claude-plugin/marketplace.json`, `plugins/superpowers-beads/.claude-plugin/plugin.json`, `plugins/superpowers-beads/.codex-plugin/plugin.json` — `scripts/check-version-sync.sh` enforces this), update `CHANGELOG.md`, run the skill activation matrix if any `SKILL.md` changed, then tag and push:
 
 ```bash
-git tag v0.X.Y
-git push origin v0.X.Y
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
-`.github/workflows/release.yml` runs preflight, builds a source tarball + sha256, attaches a GitHub Actions build-provenance attestation, and creates a GitHub Release with auto-generated notes.
-
-For pre-release tags (e.g. `v0.X.Y-rc1`), the workflow extracts the base version for the manifest match and marks the GitHub Release as a prerelease.
+`.github/workflows/release.yml` runs preflight, builds a source tarball + sha256, attaches a GitHub Actions build-provenance attestation, and creates a GitHub Release with auto-generated notes. Pre-release tags (`vX.Y.Z-rcN`, `vX.Y.Z-betaN`) are recognized and marked as prereleases automatically.
 
 ## Reporting issues and security
 
