@@ -2,7 +2,6 @@
 name: verification-before-completion
 description: Use when about to take an action that locks in a completion claim — committing, pushing, opening a PR, closing an issue, or telling the user work is done/fixed/passing. Do NOT trigger for code-reading, explaining code, or knowledge questions where no completion claim is being made.
 ---
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Verification Before Completion
 

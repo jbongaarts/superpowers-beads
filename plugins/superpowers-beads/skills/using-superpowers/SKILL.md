@@ -2,7 +2,6 @@
 name: using-superpowers
 description: Use when starting any conversation - establishes how to find and activate skills before any response, including clarifying questions
 ---
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 <SUBAGENT-STOP>
 If you were dispatched as a subagent to execute a specific task, skip this skill.

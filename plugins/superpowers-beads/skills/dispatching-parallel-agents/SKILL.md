@@ -2,7 +2,6 @@
 name: dispatching-parallel-agents
 description: Use when facing 2 or more independent tasks, failures, or work domains that can proceed concurrently without shared state or sequential dependencies
 ---
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Dispatching Parallel Agents
 

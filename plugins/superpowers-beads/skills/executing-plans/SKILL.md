@@ -3,8 +3,6 @@ name: executing-plans
 description: Use when you have a beads epic of planned issues to execute in a separate session with review checkpoints
 ---
 
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
-
 # Executing Plans
 
 ## Overview

@@ -2,7 +2,6 @@
 name: using-git-worktrees
 description: Use when starting feature work that needs an isolated workspace, dispatching parallel agents, or executing an implementation plan - creates a bd-managed worktree and claims the underlying issue before work starts
 ---
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Using Git Worktrees
 
