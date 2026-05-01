@@ -65,24 +65,58 @@ which is not the right gate for this plugin repo.
 
 Track all work in beads — do not use `TodoWrite` or markdown TODO lists.
 
-This repository currently has no Dolt remote configured. Still run
-`bd dolt push` during session close so the workflow stays consistent, but the
-expected output is `No remote is configured — skipping.` Treat that message as
-informational, not a blocker. `git push` remains mandatory for code and
-`.beads/issues.jsonl` changes.
+This repository uses Beads' documented Dolt-native sync model. The Dolt remote
+is the same GitHub repository as the source code:
+
+```bash
+bd dolt remote list
+# origin  https://github.com/jbongaarts/superpowers-beads.git
+```
+
+Beads data is pushed to GitHub under `refs/dolt/data`, separate from normal Git
+branches and tags. `.beads/issues.jsonl` is not tracked and is not the source
+of truth. Use `bd export` only when a one-off human-readable snapshot is
+explicitly needed.
+
+Before creating or updating beads on an existing checkout, sync the Dolt DB:
+
+```bash
+bd dolt pull
+```
 
 ### First-time setup
 
-After cloning, hydrate the local Dolt database from the committed JSONL and
+After cloning, bootstrap the local Dolt database from the remote Dolt ref and
 install the bd-managed git hooks:
 
 ```bash
-bd init --from-jsonl   # rebuild the local DB from .beads/issues.jsonl
+bd bootstrap
+bd dolt remote list
+bd list
 ```
 
-Run plain `bd init --from-jsonl` (without `--skip-hooks`) so the hooks under
-`.beads/hooks/` get wired into git via `core.hooksPath`. The hooks fire bd
-checks on commit/push/checkout; without them, beads sync is manual only.
+`bd bootstrap` detects `refs/dolt/data` on `origin`, clones the Beads database,
+and configures the Dolt remote for future `bd dolt pull` / `bd dolt push`
+operations. It also installs the hooks under `.beads/hooks/` via
+`core.hooksPath`. Without those hooks, beads sync is manual only.
+
+For an existing checkout created before this remote was configured:
+
+```bash
+git pull --rebase
+bd dolt remote list
+bd dolt remote add origin https://github.com/jbongaarts/superpowers-beads.git  # only if origin is missing
+bd dolt pull
+```
+
+If `bd dolt pull` reports unrelated Dolt history and you have no unpublished
+local bead changes, move the local embedded DB aside and bootstrap from the
+remote:
+
+```bash
+mv -f .beads/embeddeddolt ".beads/embeddeddolt.pre-remote-migration.$(date +%Y%m%d%H%M%S)"
+bd bootstrap
+```
 
 ## Non-Interactive Shell Commands
 
@@ -144,6 +178,7 @@ bd close <id>         # Complete work
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
+   bd dolt pull
    bd dolt push
    git push
    git status  # MUST show "up to date with origin"

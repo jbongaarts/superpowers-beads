@@ -12,6 +12,16 @@
 # When true, bd will use .beads/issues.jsonl as the source of truth
 # no-db: false
 
+# Dolt-native sync. Beads data is pushed to the GitHub repo under
+# refs/dolt/data, separate from normal source-code refs.
+sync.remote: "https://github.com/jbongaarts/superpowers-beads.git"
+
+# This repo uses the Dolt remote as the source of truth for beads.
+# Keep JSONL export available only as an explicit, manual snapshot.
+export:
+  auto: false
+  git-add: false
+
 # Enable JSON output by default
 # json: false
 

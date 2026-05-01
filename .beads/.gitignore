@@ -56,6 +56,10 @@ dolt-server.activity
 # Backup data (auto-exported JSONL, local-only)
 backup/
 
+# Beads issue export snapshots are not the source of truth in this repo.
+# The Dolt remote at refs/dolt/data is authoritative.
+issues.jsonl
+
 # Per-project environment file (Dolt connection config, GH#2520)
 .env
 

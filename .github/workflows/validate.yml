@@ -42,11 +42,11 @@ jobs:
           sudo install -m 0755 "${tmpdir}/bd" /usr/local/bin/bd
           bd --version
 
-      - name: Hydrate beads database from .beads/issues.jsonl
+      - name: Bootstrap beads database from Dolt remote
         run: |
-          # The embedded Dolt database is gitignored, so seed a fresh one from
-          # the committed JSONL export before preflight runs bd commands.
-          bd init --non-interactive --quiet --skip-agents --skip-hooks --from-jsonl
+          # The embedded Dolt database is gitignored, so clone it from the
+          # Dolt ref on origin before preflight runs bd commands.
+          bd bootstrap --yes --quiet
 
       - name: Run plugin preflight
         run: scripts/preflight.sh

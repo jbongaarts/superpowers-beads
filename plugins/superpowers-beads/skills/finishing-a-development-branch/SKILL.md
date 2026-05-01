@@ -117,10 +117,13 @@ After merge:
 
 ```bash
 git status --short --branch
+bd dolt pull
 bd dolt push
 ```
 
-If no Dolt remote is configured, record that it skipped. The `.beads/issues.jsonl` changes still travel through git.
+If no Dolt remote is configured, stop and record the gap before claiming the
+beads handoff is complete. In Dolt-native repositories, bead changes do not
+travel through git-tracked JSONL by default.
 
 #### Option 2: Merge Locally
 
