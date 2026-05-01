@@ -21,7 +21,7 @@ Read [`AGENTS.md`](./AGENTS.md) for the canonical agent and contributor instruct
 ```bash
 git clone https://github.com/jbongaarts/superpowers-beads
 cd superpowers-beads
-bd init --from-jsonl    # rebuild the local Dolt DB from .beads/issues.jsonl and install bd git hooks
+bd bootstrap            # clone the Beads Dolt DB from refs/dolt/data and install bd git hooks
 chmod 700 .beads        # bd recommends; otherwise it warns on every command
 git config beads.role contributor   # quiets a startup warning
 ```
@@ -39,11 +39,13 @@ This validates the plugin manifest, version sync across all three manifests (Cla
 This repo uses `bd` for all task tracking. Do **not** use `TodoWrite`, `TaskCreate`, or markdown TODO lists.
 
 ```bash
+bd dolt pull          # sync bead updates from other systems before editing beads
 bd ready              # find available work
 bd show <id>          # read the brief for an issue
 bd update <id> --claim
 # do the work
 bd close <id> --reason="<verified completion summary>"
+bd dolt push          # publish bead updates for other systems
 ```
 
 Conventions for new beads, dependencies, and commit/push hygiene live in `AGENTS.md`. The `bd prime` command prints the full reference.
