@@ -200,3 +200,5 @@ A question about a UI topic is not automatically a visual question. "What does p
 
 If they agree to the companion, read the detailed guide before proceeding:
 `skills/brainstorming/visual-companion.md`
+
+> **Experimental.** The visual-companion harness has not been exercised in this repo's CI and is unverified against current Claude Code / Codex builds. Treat it as a useful pattern to read, not a guaranteed-working tool. If the companion fails to start or behaves unexpectedly, fall back to terminal-only brainstorming and file an issue. Tracked under `superpowers-beads-vki`.
