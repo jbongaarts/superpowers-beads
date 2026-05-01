@@ -2,7 +2,6 @@
 name: writing-skills
 description: Use when creating a new skill, changing an existing skill, or validating whether a skill should trigger before deployment
 ---
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Writing Skills
 

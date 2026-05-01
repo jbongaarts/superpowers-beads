@@ -2,7 +2,6 @@
 name: test-driven-development
 description: Use when implementing any feature, bugfix, refactor, or behavior change before writing production code - enforces failing-test-first development and records RED/GREEN/REFACTOR evidence in beads
 ---
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Test-Driven Development
 

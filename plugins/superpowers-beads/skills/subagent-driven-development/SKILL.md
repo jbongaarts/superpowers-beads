@@ -2,7 +2,6 @@
 name: subagent-driven-development
 description: Use when executing bd-tracked tasks with independent issues in the current session
 ---
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Subagent-Driven Development
 
