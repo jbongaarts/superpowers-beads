@@ -225,6 +225,7 @@ Append a row per matrix run. Failed rows must be linked to a bd issue or PR befo
 | 2026-04-30 | `23a1467` (just before v0.1.1) | Claude Code (static review, in-session) | Pass with caveats | See run notes below. |
 | 2026-04-30 | `87c993d` (post row-tightening) | Claude Code (static review + 1 subagent probe) | Pass with one open question | Supplements the prior run with the three previously-deferred rows. See run notes below. |
 | 2026-05-01 | `f478012` | Claude Code (automated, fresh sessions) | Pass | First fully-automated fresh-session run via `scripts/run-activation-matrix.sh`. 42/42 rows match expected. One soft finding on `using-git-worktrees` row 2 chain. See `20260501T042820Z-claude-f478012` below. |
+| 2026-05-01 | `123d8e2` | Claude Code (automated, fresh sessions, parallel) | Pass with one regression | Post-`-isu`-merge run: 60.55s wall-clock (target was <10min) verifies the parallelization win. 41/42 match, 1 mismatch on `using-git-worktrees` row 2 attributable to the tightened `--max-budget-usd=0.15`. See `20260501T152840Z-claude-123d8e2` below. Codex column still pending — test machine session-limited at run time. |
 
 ### 2026-04-30 — Claude Code static review
 
@@ -290,3 +291,32 @@ Wall-clock time per row was much higher than expected; tracked separately as `su
 The Codex column of the matrix is still unrun — `run_codex_row` and `extract_activations_codex` are stubbed pending a Codex-capable machine. Tracked as the `superpowers-beads-djp` epic.
 
 **Recommendation for promoting `v0.1.1`:** ship it. The three deferred rows are validated to the extent a static review allows, the one open finding is matrix-wording vs. skill-content (non-functional), and the prior run had no skill-content regressions. A true fresh-session run is still cheap and worth doing whenever a maintainer next opens Claude Code or Codex cold; record results in this run log.
+
+### 20260501T152840Z-claude-123d8e2
+
+First post-`superpowers-beads-isu` run on the parallelized runner (`--jobs=8`, `--max-budget-usd=0.15`). Run against commit `123d8e2` (PR #38 merged). **Result: 41/42 match, 1 mismatch, 0 ambiguous. Wall-clock: 60.55s.**
+
+**Speedup acceptance:** the `-isu` bar was "under 10 minutes without sacrificing activation accuracy." Wall-clock dropped from the prior sequential run's ~21 minutes (42 rows × ~30s) to **60.55s** — a ~20× improvement, well inside the bar. Per-row durations are unchanged (~25–60s) — the win is entirely from parallelism.
+
+**One mismatch (`using-git-worktrees` row 2):**
+
+| Section | Row | Expected | Activated | Notes |
+|---|---|---|---|---|
+| using-git-worktrees | 2 | `using-git-worktrees → executing-plans` | _(none)_ | Hit `error_max_budget_usd` after one Bash tool call. The model said it would "verify the bead exists before kicking off worktree setup, then invoke the right skill," ran `bd show superpowers-beads-abc` first, then exhausted the $0.15 budget before invoking the Skill tool. Cost at exit: $0.16. |
+
+**Diagnosis:** this is plausibly a regression introduced by the tightened `--max-budget-usd=0.50→0.15` in PR #38, not a skill-content issue. The previous run on the same row was a "soft finding" — `using-git-worktrees` activated alone without the chained `executing-plans`. With the tighter budget, the model's bead-verification step now consumes the entire budget before any skill activation can register.
+
+**Soft findings flagged for review** (chains/qualifiers the script can't fully judge — verified by hand against prior run notes):
+
+| Section | Row | Expected | Activated | Verdict |
+|---|---|---|---|---|
+| brainstorming | 4 | `systematic-debugging or test-driven-development` | `systematic-debugging` | Pass — alternation satisfied. |
+| systematic-debugging | 3 | `systematic-debugging (with pushback)` | `systematic-debugging` | Pass — Iron Law / Red Flags table encode the resistance behavior. |
+| writing-skills | 3 | `writing-skills (validation step: is this reusable?)` | `writing-skills` | Pass — script can't detect validation-step content but the right skill fired. |
+
+**Codex column:** still unrun. The maintainer's test machine was session-limited (Claude and Codex both blocked) at run time. Codex verification deferred until rate-limit resolves; tracked under `superpowers-beads-djp`.
+
+**Action items raised by this run:**
+
+- Decide whether to bump `--max-budget-usd` slightly (e.g., 0.20) to reabsorb the worktree-row chain that prior runs caught, *or* update row 2's expectation to allow `using-git-worktrees` solo (matching what the prior run already showed as a soft finding). Filed as a follow-up bead.
+- Re-run after Codex unblocks to capture both columns.
