@@ -1,0 +1,33 @@
+# Keep CI dependencies fresh without surprise upgrades. Dependabot opens a PR
+# when a watched dependency has a newer version; the PR runs the standard
+# preflight CI so any breakage shows up before merge.
+#
+# Coverage:
+#   - GitHub Actions used in .github/workflows/*.yml
+#   - npm package(s) referenced as version-pinned env vars in workflows
+#     (currently @anthropic-ai/claude-code via CLAUDE_CODE_VERSION)
+#
+# `bd` is not on Dependabot — it's installed from a tarball asset rather than
+# npm or a Docker image. BD_VERSION bumps are tracked manually via
+# scripts/check-bd-api.sh which catches API drift on whatever version CI runs.
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: ci
+      include: scope
+
+  # Dependabot does not natively watch env-var version pins. To bump
+  # CLAUDE_CODE_VERSION, the maintainer manually checks `npm view
+  # @anthropic-ai/claude-code version` against the env var (typically as part
+  # of the quarterly upstream review per docs/upstream-tracking.md) and lands
+  # the bump alongside any matrix re-run that demonstrates compatibility.
