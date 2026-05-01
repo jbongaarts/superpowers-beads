@@ -49,4 +49,9 @@ jobs:
           bd bootstrap --yes --quiet
 
       - name: Run plugin preflight
+        env:
+          # Allow the single bead currently driving the active PR to be
+          # in_progress without failing CI. preflight.sh already enforces
+          # that this is the only in-progress bead.
+          ALLOW_IN_PROGRESS: superpowers-beads-isu
         run: scripts/preflight.sh
