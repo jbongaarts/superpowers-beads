@@ -122,3 +122,11 @@ The skill itself tells you which.
 ## User Instructions
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
+
+**Explicit overrides.** When the user explicitly tells you to skip a workflow ("just do it", "skip the skill", "no TDD this time", "don't bother brainstorming"), do NOT silently comply. First name the skill that would normally apply and explicitly acknowledge the override before proceeding:
+
+> "Brainstorming would normally apply here; you've asked me to skip it. Proceeding without it."
+
+This serves two purposes: it makes the override visible (so a misread or context-loss doesn't slip through unnoticed) and it leaves an audit trail in the conversation. After the acknowledgment, follow the user instruction.
+
+If the user's override conflicts with a hard rule the skill itself flags as non-overridable (a `<HARD-GATE>` block, an Iron Law, etc.), surface that conflict rather than overriding it. The user can still insist, but they have to do so against the explicit warning.
