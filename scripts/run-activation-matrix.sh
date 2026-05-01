@@ -19,8 +19,8 @@
 #   - --plugin-dir loads this repo's plugin directly; no install step needed.
 #   - --jobs=1 forces sequential execution (useful when debugging a single row
 #     or when API/local-CPU contention is a concern).
-#   - The codex path is stubbed; the user fills it in on a machine that has
-#     codex installed. The artifact format is identical so collation works.
+#   - Codex loads repo-local skills from .agents/skills when run at REPO_ROOT.
+#     The artifact format is identical to Claude's so collation works.
 
 set -euo pipefail
 
@@ -63,6 +63,10 @@ case "$harness" in
 esac
 
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
+case "$harness" in
+  claude) command -v claude >/dev/null || { echo "claude is required for --harness=claude" >&2; exit 1; } ;;
+  codex)  command -v codex  >/dev/null || { echo "codex is required for --harness=codex" >&2; exit 1; } ;;
+esac
 
 mkdir -p "$out_dir"
 ts="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -149,17 +153,28 @@ run_claude_row() {
     > "$raw_path" 2>"$raw_path.stderr" || true
 }
 
-# Stub: fill in on a machine that has the Codex CLI installed.
-# Should write NDJSON (or any line-oriented format) to $1 such that
-# extract_activations_codex below can pull skill names out of it.
+# Run a single prompt in a fresh codex session and emit JSONL to $1 (raw path).
+# Codex does not currently expose a --plugin-dir flag; from REPO_ROOT it
+# discovers this repo's .agents/skills symlink and loads skills from there.
 run_codex_row() {
   local raw_path="$1"; shift
   local prompt="$1"; shift
-  echo "ERROR: codex runner not yet implemented." >&2
-  echo "Edit run_codex_row() in scripts/run-activation-matrix.sh to wire up:" >&2
-  echo "  codex exec --plugin-dir $PLUGIN_DIR <flags> \"\$prompt\" > \"\$raw_path\"" >&2
-  echo "and update extract_activations_codex() to match codex's tool-event shape." >&2
-  return 2
+  # --json: emit line-delimited events that include command executions.
+  # --ephemeral: do not persist matrix sessions to the user's Codex history.
+  # --ignore-user-config: keep user-level config/plugins from affecting rows;
+  #   auth still comes from CODEX_HOME, and repo-local AGENTS/skills still load.
+  # --sandbox read-only: activation checks should not mutate the checkout.
+  # stdin is /dev/null so backgrounded workers cannot consume the matrix TSV.
+  codex exec \
+    --json \
+    --ephemeral \
+    --ignore-user-config \
+    --sandbox read-only \
+    --color never \
+    -C "$REPO_ROOT" \
+    "$prompt" \
+    < /dev/null \
+    > "$raw_path" 2>"$raw_path.stderr" || true
 }
 
 # ---- 3. Activation extractors ----
@@ -184,13 +199,21 @@ extract_activations_claude() {
 
 extract_activations_codex() {
   local raw_path="$1"
-  # TODO: fill in once codex's tool-event JSON shape is known. Until then,
-  # emit nothing so rows record empty activation and the collator flags them.
-  : > /dev/null
-  echo -n ""
-  # Hint: if codex emits NDJSON with a "tool_use" type and a "skill" arg,
-  # mirror the claude extractor:
-  # jq -r 'select(.type=="tool_use" and .name=="skill") | .input.skill | sub("^[^:]+:"; "")' "$raw_path"
+  # Codex CLI JSONL currently reports skill activation indirectly: the agent
+  # reads the selected skill's SKILL.md via a command_execution event. Pull the
+  # skill directory out of completed command strings and de-duplicate in order
+  # because each skill can be read more than once during a turn.
+  jq -r '
+    def skill_from_path:
+      try capture("(^|/)(\\.agents/)?skills/(?<skill>[A-Za-z0-9_-]+)/SKILL\\.md").skill catch empty;
+
+    select(.type == "item.completed")
+    | .item?
+    | select(.type == "command_execution")
+    | .command // ""
+    | skill_from_path
+    | sub("^[^:]+:"; "")
+  ' "$raw_path" 2>/dev/null | awk 'NF && !seen[$0]++' || true
 }
 
 # ---- 4. Iterate rows, run, capture, build artifact ----

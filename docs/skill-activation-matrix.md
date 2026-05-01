@@ -29,8 +29,8 @@ scripts/run-activation-matrix.sh --harness=claude --jobs=1
 scripts/run-activation-matrix.sh --harness=claude \
   --rows=brainstorming:3,verification-before-completion:1
 
-# On a different machine that has Codex installed:
-scripts/run-activation-matrix.sh --harness=codex      # codex runner is currently a stub — see script
+# On a machine that has Codex installed:
+scripts/run-activation-matrix.sh --harness=codex
 
 # Combine artifacts (e.g. local claude + codex from another machine) into a
 # run-log entry ready to paste under `## Run log`:
@@ -39,9 +39,9 @@ scripts/collate-matrix-runs.sh \
   /path/to/<ts>-codex-<commit>.json
 ```
 
-The runner uses `--setting-sources user` and `--plugin-dir` so the project's `SessionStart` hook (`bd prime`) cannot pollute fresh-session activation, and the plugin is loaded directly from this checkout — no install step required. Activation is detected from `Skill` tool-use events in the harness's stream-json output. The orchestrator skill `using-superpowers` is excluded from the comparison since it is expected to fire on every row.
+The Claude runner uses `--setting-sources user` and `--plugin-dir` so the project's `SessionStart` hook (`bd prime`) cannot pollute fresh-session activation, and the plugin is loaded directly from this checkout. The Codex runner uses `codex exec --json` from the repository root; Codex discovers this repo's `.agents/skills` symlink, runs ephemerally with user config ignored, and keeps matrix rows in a read-only sandbox.
 
-The codex path is currently stubbed; fill in `run_codex_row` and `extract_activations_codex` in the script once a codex-capable machine is available, then send the JSON artifact back for collation.
+Activation is detected from harness event output: Claude reports `Skill` tool-use events, while Codex currently reports completed command executions that read `plugins/superpowers-beads/skills/<skill>/SKILL.md`. The orchestrator skill `using-superpowers` is excluded from the comparison since it is expected to fire on every row.
 
 ## Pre-flight
 
