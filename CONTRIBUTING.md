@@ -93,10 +93,8 @@ bd mol pour superpowers-skill-authoring --var title="<skill change>" --var skill
 Mandatory shape:
 
 - YAML frontmatter with `name` (kebab-case) and `description` (must start with "Use when" and describe trigger conditions only — `scripts/check-skill-frontmatter.sh` enforces non-empty fields).
-- Attribution comment for skills derived from obra/superpowers, immediately after the frontmatter:
-  ```
-  <!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
-  ```
+
+Attribution for skills derived from obra/superpowers is carried at the repo level by `LICENSE` (MIT notice plus the "Portions of this work are derived from 'superpowers' by Jesse Vincent" line). Per-file headers are not required.
 
 When a skill references another skill (`superpowers:<name>`) or a supplementary file (`./helper.md`, `references/foo.md`), `scripts/check-skill-references.sh` verifies the target exists.
 

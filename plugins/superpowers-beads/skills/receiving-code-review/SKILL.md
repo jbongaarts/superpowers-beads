@@ -2,7 +2,6 @@
 name: receiving-code-review
 description: Use when receiving code review feedback, before implementing suggestions - especially when feedback seems unclear or technically questionable; verify against the codebase before acting
 ---
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Code Review Reception
 

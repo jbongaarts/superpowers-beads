@@ -2,7 +2,6 @@
 name: writing-plans
 description: Use when you have a spec or requirements for a multi-step task, before touching code
 ---
-<!-- Derived from obra/superpowers (MIT, (c) 2025 Jesse Vincent) - rewritten to use bd (beads) as the persistence layer. -->
 
 # Writing Plans
 
