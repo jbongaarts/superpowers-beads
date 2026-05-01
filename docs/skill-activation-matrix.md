@@ -12,15 +12,18 @@ This is a manual or agent-driven check. It is not part of `scripts/preflight.sh`
 4. Record the actual activation (or "no skill") next to the expected one. A row passes only when the actual matches the expected.
 5. Any mismatch is a release-blocking regression. Either tighten the skill's frontmatter description, fix the false-positive overlap with another skill, or revise the expected outcome with rationale.
 
-A full matrix run takes roughly 15–20 minutes per harness. Run it before any release that includes a SKILL.md edit.
+A manual full matrix run takes roughly 15–20 minutes per harness. The automated runner finishes in a few minutes by running rows in parallel (default `--jobs=8`). Run the matrix before any release that includes a SKILL.md edit.
 
 ### Automated runs
 
-`scripts/run-activation-matrix.sh` drives this matrix non-interactively. Each row fires in its own fresh harness session (no context bleed) and a normalized JSON artifact is written to `.matrix-runs/`.
+`scripts/run-activation-matrix.sh` drives this matrix non-interactively. Each row fires in its own fresh harness session (no context bleed) and a normalized JSON artifact is written to `.matrix-runs/`. Rows are independent fresh sessions, so the runner dispatches them concurrently — `--jobs=N` controls how many are in flight at once (default 8; pass `--jobs=1` to force sequential).
 
 ```bash
 # Local Claude Code run.
 scripts/run-activation-matrix.sh --harness=claude
+
+# Sequential (debugging a single row, or constrained network).
+scripts/run-activation-matrix.sh --harness=claude --jobs=1
 
 # Optional: only re-run a few rows after a description change.
 scripts/run-activation-matrix.sh --harness=claude \

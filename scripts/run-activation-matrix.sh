@@ -3,19 +3,22 @@
 # Run the skill activation matrix in fresh harness sessions.
 #
 # Usage:
-#   scripts/run-activation-matrix.sh --harness=claude [--out=DIR] [--rows=SECTION:ROW,...]
-#   scripts/run-activation-matrix.sh --harness=codex  [--out=DIR] [--rows=SECTION:ROW,...]
+#   scripts/run-activation-matrix.sh --harness=claude [--out=DIR] [--rows=SECTION:ROW,...] [--jobs=N]
+#   scripts/run-activation-matrix.sh --harness=codex  [--out=DIR] [--rows=SECTION:ROW,...] [--jobs=N]
 #
 # Each row is fired in its own fresh non-interactive session so context cannot
-# bleed between rows. The script writes a normalized JSON artifact at
-# $OUT/<ts>-<harness>-<commit>.json that scripts/collate-matrix-runs.sh can
-# fold into a run-log entry — bring artifacts from multiple machines (e.g.
+# bleed between rows. Rows are independent, so they run in parallel by default
+# (--jobs controls concurrency; default 8). The script writes a normalized JSON
+# artifact at $OUT/<ts>-<harness>-<commit>.json that scripts/collate-matrix-runs.sh
+# can fold into a run-log entry — bring artifacts from multiple machines (e.g.
 # claude local + codex elsewhere) and collate into one entry.
 #
 # Notes:
 #   - Claude path uses --setting-sources user so the project's SessionStart
 #     hooks (bd prime) don't pollute fresh-session activation.
 #   - --plugin-dir loads this repo's plugin directly; no install step needed.
+#   - --jobs=1 forces sequential execution (useful when debugging a single row
+#     or when API/local-CPU contention is a concern).
 #   - The codex path is stubbed; the user fills it in on a machine that has
 #     codex installed. The artifact format is identical so collation works.
 
@@ -32,9 +35,10 @@ PLUGIN_DIR="$REPO_ROOT/plugins/superpowers-beads"
 harness=""
 out_dir="$REPO_ROOT/.matrix-runs"
 filter_rows=""
+jobs=8
 
 usage() {
-  sed -n '3,21p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '3,23p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 for arg in "$@"; do
@@ -42,10 +46,16 @@ for arg in "$@"; do
     --harness=*) harness="${arg#--harness=}" ;;
     --out=*)     out_dir="${arg#--out=}" ;;
     --rows=*)    filter_rows="${arg#--rows=}" ;;
+    --jobs=*)    jobs="${arg#--jobs=}" ;;
     -h|--help)   usage; exit 0 ;;
     *) echo "unknown arg: $arg" >&2; usage >&2; exit 1 ;;
   esac
 done
+
+case "$jobs" in
+  ''|*[!0-9]*) echo "--jobs must be a positive integer, got: $jobs" >&2; exit 1 ;;
+esac
+[ "$jobs" -lt 1 ] && { echo "--jobs must be >= 1" >&2; exit 1; }
 
 case "$harness" in
   claude|codex) ;;
@@ -123,7 +133,9 @@ run_claude_row() {
   # --plugin-dir: load this repo's plugin directly.
   # --output-format stream-json + --verbose: emit one JSON object per event so
   #   we can detect Skill tool_use invocations.
-  # --max-budget-usd: per-row safety net; tighten if matrix grows.
+  # --max-budget-usd: per-row safety net. Tightened from 0.50 to 0.15 — an
+  #   activation decision plus the model "stopping" should run well under that;
+  #   the tighter cap helps cut runaway rows that keep doing follow-up tool use.
   # --permission-mode bypassPermissions: avoid hanging on permission prompts
   #   in non-interactive runs. The user is opting in by running this script.
   claude -p \
@@ -131,7 +143,7 @@ run_claude_row() {
     --plugin-dir "$PLUGIN_DIR" \
     --output-format stream-json \
     --verbose \
-    --max-budget-usd 0.50 \
+    --max-budget-usd 0.15 \
     --permission-mode bypassPermissions \
     "$prompt" \
     > "$raw_path" 2>"$raw_path.stderr" || true
@@ -183,14 +195,10 @@ extract_activations_codex() {
 
 # ---- 4. Iterate rows, run, capture, build artifact ----
 
-# Build the artifact with jq from a stream of per-row JSON objects.
-results_ndjson="$(mktemp)"
-trap 'rm -f "$rows_tsv" "$results_ndjson"' EXIT
-
-row_index=0
-matched=0
-mismatched=0
-ambiguous=0
+# Per-row results land in $raw_dir/<seq>.json so the parent can concat them in
+# a stable order after all workers finish. We can't aggregate counts in shell
+# vars across backgrounded jobs (each worker is its own subshell), so the
+# summary is computed at the end by reading the per-row JSON files.
 
 # Allow filtering with --rows=section:row,section:row,...
 should_run_row() {
@@ -205,16 +213,18 @@ should_run_row() {
   return 1
 }
 
-while IFS=$'\t' read -r section row prompt expected notes; do
-  row_index=$((row_index + 1))
-  if ! should_run_row "$section" "$row"; then
-    continue
-  fi
-  # Sanitize section for filename use.
+# Process a single row end-to-end: run the harness, extract activations,
+# classify outcome, write per-row JSON to a dedicated file. Designed to be
+# safe to run concurrently — every output path is row-scoped.
+process_row() {
+  local seq="$1" total="$2" section="$3" row="$4" prompt="$5" expected="$6" notes="$7"
+  local safe_section raw_path result_path activated filtered expected_lc outcome
   safe_section="$(printf '%s' "$section" | tr -c '[:alnum:]-_' '_')"
   raw_path="$raw_dir/${safe_section}-${row}.ndjson"
+  result_path="$raw_dir/${safe_section}-${row}.result.json"
 
-  printf '[%d/%d] %s row %s ... ' "$row_index" "$total_rows" "$section" "$row"
+  local started ended
+  started="$(date +%s)"
 
   case "$harness" in
     claude) run_claude_row "$raw_path" "$prompt" ;;
@@ -225,6 +235,9 @@ while IFS=$'\t' read -r section row prompt expected notes; do
     claude) activated="$(extract_activations_claude "$raw_path" | awk 'NF' | paste -sd, -)" ;;
     codex)  activated="$(extract_activations_codex  "$raw_path" | awk 'NF' | paste -sd, -)" ;;
   esac
+
+  ended="$(date +%s)"
+  local duration=$((ended - started))
 
   # Comparator: drop using-superpowers from activated for matching purposes
   # (it's the always-on orchestrator and not relevant unless explicitly expected).
@@ -238,12 +251,11 @@ while IFS=$'\t' read -r section row prompt expected notes; do
   if [[ "$expected_lc" == *"no skill"* ]]; then
     if [ -z "$filtered" ]; then outcome="match"; else outcome="mismatch"; fi
   else
-    # Pull recognizable skill names out of the expected cell.
+    local expected_skills hit es
     expected_skills="$(printf '%s' "$expected" | tr -c 'a-zA-Z-' '\n' | awk 'length($0)>2' | sort -u)"
     if [ -z "$filtered" ]; then
       outcome="mismatch"
     else
-      # If any expected skill appears in activated, count as match.
       hit=0
       for es in $expected_skills; do
         if printf '%s\n' "$filtered" | tr ',' '\n' | grep -Fxq "$es"; then
@@ -254,18 +266,22 @@ while IFS=$'\t' read -r section row prompt expected notes; do
     fi
   fi
 
-  # Anything with chains/alternatives in expected is worth a human glance.
   if [[ "$expected" == *"→"* ]] || [[ "$expected" == *" or "* ]] || [[ "$expected_lc" == *"with pushback"* ]] || [[ "$expected_lc" == *"validation step"* ]]; then
     outcome="${outcome}-review"
   fi
 
+  # Progress line. Workers are interleaved when --jobs > 1, so include both
+  # row and outcome on a single printf so lines don't get mangled.
+  local color reset='\033[0m'
   case "$outcome" in
-    match*) matched=$((matched + 1)); printf '\033[32mmatch\033[0m' ;;
-    mismatch*) mismatched=$((mismatched + 1)); printf '\033[31mmismatch\033[0m' ;;
-    *) ambiguous=$((ambiguous + 1)); printf '\033[33m%s\033[0m' "$outcome" ;;
+    match*) color='\033[32m' ;;
+    mismatch*) color='\033[31m' ;;
+    *) color='\033[33m' ;;
   esac
-  [[ "$outcome" == *-review ]] && printf ' (review)'
-  printf '  expected="%s"  activated="%s"\n' "$expected" "${filtered:-<none>}"
+  local review=""
+  [[ "$outcome" == *-review ]] && review=" (review)"
+  printf "[%d/%d] %s row %s (%ds) ${color}%s${reset}%s  expected=\"%s\"  activated=\"%s\"\n" \
+    "$seq" "$total" "$section" "$row" "$duration" "$outcome" "$review" "$expected" "${filtered:-<none>}"
 
   jq -nc \
     --arg section "$section" \
@@ -277,28 +293,104 @@ while IFS=$'\t' read -r section row prompt expected notes; do
     --arg activated_filtered "$filtered" \
     --arg outcome "$outcome" \
     --arg raw_path "${raw_path#$REPO_ROOT/}" \
+    --argjson duration "$duration" \
     '{
       section: $section, row: $row, prompt: $prompt, expected: $expected, notes: $notes,
       activated_raw: ($activated_raw | split(",") | map(select(length > 0))),
       activated_filtered: ($activated_filtered | split(",") | map(select(length > 0))),
       outcome: $outcome,
+      duration_seconds: $duration,
       raw_path: $raw_path
-    }' >> "$results_ndjson"
+    }' > "$result_path"
+}
+
+# Build the worklist and dispatch to backgrounded workers, throttled to $jobs.
+# Each worker runs `process_row` in a subshell. We track filenames in the order
+# they were enqueued so the final artifact's `rows[]` is stable and reproducible.
+
+total_filtered=0
+declare -a result_files=()
+
+# Pre-count rows to give the [seq/total] progress label a meaningful denominator.
+filtered_tsv="$(mktemp)"
+trap 'rm -f "$rows_tsv" "$filtered_tsv"' EXIT
+while IFS=$'\t' read -r section row prompt expected notes; do
+  if should_run_row "$section" "$row"; then
+    printf '%s\t%s\t%s\t%s\t%s\n' "$section" "$row" "$prompt" "$expected" "$notes" >> "$filtered_tsv"
+  fi
 done < "$rows_tsv"
+total_filtered="$(wc -l < "$filtered_tsv" | tr -d ' ')"
+
+if [ "$total_filtered" -eq 0 ]; then
+  echo "No rows matched --rows filter; nothing to run." >&2
+  exit 1
+fi
+
+echo "Running $total_filtered rows with --jobs=$jobs"
+
+# Propagate Ctrl-C: kill any in-flight workers before exiting.
+trap 'rm -f "$rows_tsv" "$filtered_tsv"; kill $(jobs -p) 2>/dev/null; exit 130' INT TERM
+
+seq=0
+running=0
+while IFS=$'\t' read -r section row prompt expected notes; do
+  seq=$((seq + 1))
+  safe_section="$(printf '%s' "$section" | tr -c '[:alnum:]-_' '_')"
+  result_files+=("$raw_dir/${safe_section}-${row}.result.json")
+
+  process_row "$seq" "$total_filtered" "$section" "$row" "$prompt" "$expected" "$notes" &
+  running=$((running + 1))
+
+  if [ "$running" -ge "$jobs" ]; then
+    # wait -n returns when any one backgrounded job exits.
+    wait -n || true
+    running=$((running - 1))
+  fi
+done < "$filtered_tsv"
+
+# Drain remaining jobs.
+wait
 
 # ---- 5. Build summary artifact ----
+
+results_ndjson="$(mktemp)"
+trap 'rm -f "$rows_tsv" "$filtered_tsv" "$results_ndjson"' EXIT
+
+# Concatenate per-row JSON files in enqueue order. A missing file means a
+# worker crashed before writing its result — surface that loudly rather than
+# silently shipping a short artifact.
+missing=0
+for f in "${result_files[@]}"; do
+  if [ ! -f "$f" ]; then
+    echo "missing per-row result: $f" >&2
+    missing=$((missing + 1))
+    continue
+  fi
+  cat "$f" >> "$results_ndjson"
+done
+if [ "$missing" -gt 0 ]; then
+  echo "$missing row(s) produced no result file — artifact will be incomplete." >&2
+fi
+
+# Compute summary by reading the NDJSON we just assembled.
+matched="$(jq -s   '[.[] | select(.outcome | startswith("match"))]    | length' "$results_ndjson")"
+mismatched="$(jq -s '[.[] | select(.outcome | startswith("mismatch"))] | length' "$results_ndjson")"
+ambiguous="$(jq -s '[.[] | select((.outcome | startswith("match")    | not) and (.outcome | startswith("mismatch") | not))] | length' "$results_ndjson")"
+total_rows_run="$(jq -s 'length' "$results_ndjson")"
 
 jq -s --arg ts "$ts" \
       --arg commit "$commit" \
       --arg harness "$harness" \
       --arg matrix_path "$(basename "$MATRIX")" \
-      --argjson summary "{\"matched\":$matched,\"mismatched\":$mismatched,\"ambiguous\":$ambiguous,\"total\":$row_index}" \
+      --argjson jobs "$jobs" \
+      --argjson summary "{\"matched\":$matched,\"mismatched\":$mismatched,\"ambiguous\":$ambiguous,\"total\":$total_rows_run}" \
    '{
       run_id: ($ts + "-" + $harness + "-" + $commit),
       timestamp: $ts,
       commit: $commit,
       harness: $harness,
       matrix: $matrix_path,
+      jobs: $jobs,
       summary: $summary,
       rows: .
     }' "$results_ndjson" > "$artifact"
@@ -306,4 +398,4 @@ jq -s --arg ts "$ts" \
 echo
 echo "Artifact: $artifact"
 echo "Raw outputs: $raw_dir"
-echo "Summary: $matched match, $mismatched mismatch, $ambiguous ambiguous (of $row_index run)"
+echo "Summary: $matched match, $mismatched mismatch, $ambiguous ambiguous (of $total_rows_run run, jobs=$jobs)"
