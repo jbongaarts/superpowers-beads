@@ -86,6 +86,8 @@ See [docs/formulas.md](docs/formulas.md) for the current formula catalog.
 
 Derived from [obra/superpowers](https://github.com/obra/superpowers) (MIT, © 2025 Jesse Vincent). Beads concepts and commands from [steveyegge/beads](https://github.com/steveyegge/beads).
 
+This plugin is a rewrite, not a fork. See [docs/upstream-tracking.md](docs/upstream-tracking.md) for the cadence and decision process used to keep an eye on upstream changes without committing to a tight coupling.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
