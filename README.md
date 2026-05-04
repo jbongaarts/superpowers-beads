@@ -8,8 +8,14 @@ The original superpowers skills persist work as markdown plan/spec files and in-
 
 This plugin rewrites the skills to use `bd` as the source of truth for plans, tasks, debugging evidence, code-review feedback, and lessons learned — while keeping the rigor (TDD, verification-before-completion, systematic debugging) of the originals.
 
-The same skill source is exposed to Claude Code through the Claude plugin
-marketplace layout and to Codex through the repo-level `.agents/skills` link.
+## Supported harnesses
+
+The plugin is verified against:
+
+- **Claude Code** — installed via `/plugin marketplace add jbongaarts/superpowers-beads`. The skill activation matrix is run against this harness on every release.
+- **Codex** — installed via `codex plugin marketplace add jbongaarts/superpowers-beads`. Same skill source loads via the repo-level `.agents/skills` symlink. Matrix is run against this harness on every release.
+
+Other harnesses (Copilot CLI, Gemini CLI, etc.) may pick up the skills via their own discovery mechanisms but are **not actively supported** in 1.0. PRs adding cross-harness fixes or smoke coverage are welcome — see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Status
 
@@ -81,6 +87,11 @@ The repo includes beads-native workflow formulas in `.beads/formulas/`.
 Use `bd formula list` to see them, `bd cook <name> --dry-run --var title="..."` to preview them, and `bd mol pour <name> --var title="..."` to instantiate a workflow graph.
 
 See [docs/formulas.md](docs/formulas.md) for the current formula catalog.
+
+## Feedback and bug reports
+
+- **Functional bugs / feature requests:** open a [GitHub Issue](https://github.com/jbongaarts/superpowers-beads/issues). Include the plugin version (`bd export | jq -r '.version'` or check `.claude-plugin/marketplace.json`), the harness (Claude Code / Codex) and version, and a reproduction prompt where possible.
+- **Security vulnerabilities:** see [`SECURITY.md`](./SECURITY.md) — please do not file public issues for vulnerabilities.
 
 ## Credits
 
