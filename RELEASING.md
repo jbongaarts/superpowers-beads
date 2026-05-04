@@ -237,16 +237,16 @@ Other harnesses (Copilot CLI, Gemini CLI, etc.) require manual smoke per the
 matrix doc until automation lands. A release that adds a new harness to the
 support list MUST include a matrix run-log entry for that harness.
 
-## Open follow-ups for the 1.0 commitment
+## Post-1.0 follow-ups
 
-1.0 implies a stronger SemVer commitment than 0.x. Before tagging `v1.0.0`:
+1.0 shipped on 2026-05-04. The four prerequisites that gated it all landed in v0.2.0:
 
-- `superpowers-beads-ngq` — verify upgrade path delivers new tags to installed
-  users (Claude marketplace + Codex).
-- `superpowers-beads-803` — cross-platform smoke (Windows native + at least
-  one of Copilot CLI / Gemini CLI).
-- `superpowers-beads-6og` — bd API compatibility smoke in CI, so silent bd
-  upstream changes don't break skills without warning.
-- `superpowers-beads-wjd` — establish a user feedback channel.
+- `superpowers-beads-803` — closed: support claim scoped to Claude + Codex.
+- `superpowers-beads-6og` — closed: `scripts/check-bd-api.sh` runs in preflight.
+- `superpowers-beads-wjd` — closed: GitHub Issues as the feedback venue.
+- `superpowers-beads-ngq` — Claude side verified at v0.2.0; Codex side verified alongside `superpowers-beads-9ik` (matrix run on 2026-05-05).
 
-Until those land, prefer `0.X` releases.
+Items deferred from the 1.0 cut, tracked for follow-up:
+
+- `superpowers-beads-9ik` — Codex matrix column for 1.0 verification. If it surfaces regressions, patched in v1.0.1. Otherwise the run-log entry is recorded as a docs-only PATCH.
+- Cross-harness expansion to Copilot CLI / Gemini CLI is out of scope for 1.0 per the README "Supported harnesses" section. PRs welcome.
