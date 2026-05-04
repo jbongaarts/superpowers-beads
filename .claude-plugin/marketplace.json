@@ -5,8 +5,7 @@
     "email": "joe@wtfs.net"
   },
   "metadata": {
-    "description": "Beads-native rewrite of the superpowers skills",
-    "version": "0.1.0"
+    "description": "Beads-native rewrite of the superpowers skills"
   },
   "plugins": [
     {
