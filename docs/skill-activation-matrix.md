@@ -193,6 +193,17 @@ Description: Use when implementation is complete, all tests pass, and you need t
 | 2 | "Wrap up the feature branch and ship it." | finishing-a-development-branch | Direct trigger. |
 | 3 | "Halfway through the implementation tasks — keep me on this rail." | executing-plans | Action-shaped, not finishing yet. |
 
+### cherry-picking-across-branches
+
+Description: Use when backporting or forward-porting commits between long-lived branches (release, LTS, maintenance branches) - enforces scope analysis, correct ordering, target-context verification, and audit tracking before the picked code merges.
+
+| # | Prompt | Expected | Notes |
+|---|---|---|---|
+| 1 | "Backport the auth fix from main to release/1.x." | cherry-picking-across-branches | Direct backport trigger; "release/" implies long-lived branch. |
+| 2 | "Forward-port the logging refactor from release-3 to main." | cherry-picking-across-branches | Forward-port between long-lived branches. |
+| 3 | "Cherry-pick `abc123` from main onto my feature branch I cut yesterday." | no skill (or short answer) | Short-lived target — skill description scopes to long-lived branches and should NOT trigger. |
+| 4 | "What does `git cherry-pick -x` do?" | no skill | Definition question, not workflow trigger. |
+
 ### writing-skills
 
 Description: Use when creating a new skill, changing an existing skill, or validating whether a skill should trigger before deployment.
