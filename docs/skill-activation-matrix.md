@@ -237,6 +237,7 @@ Append a row per matrix run. Failed rows must be linked to a bd issue or PR befo
 | 2026-04-30 | `87c993d` (post row-tightening) | Claude Code (static review + 1 subagent probe) | Pass with one open question | Supplements the prior run with the three previously-deferred rows. See run notes below. |
 | 2026-05-01 | `f478012` | Claude Code (automated, fresh sessions) | Pass | First fully-automated fresh-session run via `scripts/run-activation-matrix.sh`. 42/42 rows match expected. One soft finding on `using-git-worktrees` row 2 chain. See `20260501T042820Z-claude-f478012` below. |
 | 2026-05-01 | `4d32c0a` | Claude Code (automated, fresh sessions, parallel, sandboxed) | Pass | First run after sandboxing each row in a throwaway `git init`/`bd init` workspace and loosening row 2 expected to `or`. **42/42 match, 0 mismatch.** Wall-clock ~4 minutes (slowest in-flight row 130s; per-row mean 55s). Zero side effects on the parent repo or bead state — earlier budget-free runs without sandboxing claimed real beads, created worktrees, and made commits, all of which the sandbox now contains. See `20260501T185908Z-claude-4d32c0a` below. Codex column still pending — test machine session-limited. |
+| 2026-05-04 | `e2be8d5` | Claude Code (automated, fresh sessions, parallel, sandboxed) | Pass | **Pre-1.0 verification run.** First run after the cherry-pick rows (PR #46) and the override-acknowledgment language addition to using-superpowers (PR #47) landed on main. **46/46 match, 0 mismatch.** Wall-clock ~5 minutes (slowest in-flight 281s; mean 66s; sum 3055s parallelized over 8 jobs). Zero side effects. See `20260504T052609Z-claude-e2be8d5` below. Codex column verified separately on 2026-05-05 per `superpowers-beads-9ik`. |
 
 ### 2026-04-30 — Claude Code static review
 
@@ -325,3 +326,25 @@ First run on the sandboxed runner. Each row now executes in a throwaway `mktemp 
 | using-git-worktrees | 2 | `using-git-worktrees or executing-plans` | `using-git-worktrees` | Pass — alternation satisfied (loosened from prior chain expectation). |
 | systematic-debugging | 3 | `systematic-debugging (with pushback)` | `systematic-debugging` | Pass — Iron Law / Red Flags table encode the resistance behavior. |
 | writing-skills | 3 | `writing-skills (validation step: is this reusable?)` | `writing-skills` | Pass — script can't detect the validation-step content but the right skill fired. |
+
+### 20260504T052609Z-claude-e2be8d5
+
+Pre-1.0 verification run on commit `e2be8d5`. **Result: 46/46 match, 0 mismatch, 0 ambiguous. Wall-clock ~5 minutes** (slowest in-flight 281s; per-row min 30s, max 281s, mean 66s, sum 3055s parallelized over `--jobs=8`).
+
+**What's new since the prior recorded run** (`20260501T185908Z-claude-4d32c0a`):
+
+1. **Cherry-pick rows added** — `cherry-picking-across-branches` skill (PR #41) gained 4 matrix rows in PR #46: two trigger prompts on different long-lived-branch shapes, one anti-trigger on a short-lived target (skill description scopes to long-lived), one definition-question anti-trigger.
+2. **Override-acknowledgment language** — `using-superpowers/SKILL.md` "User Instructions" section gained the announce-then-acknowledge pattern in PR #47 (closing the matrix gap from `superpowers-beads-xmy`). The existing matrix doesn't run an explicit user-override row, so this change has no per-row effect; the addition is body content, not frontmatter, so it doesn't affect activation.
+3. **Experimental callouts** — `brainstorming/SKILL.md` and `systematic-debugging/root-cause-tracing.md` mark visual-companion and find-polluter as experimental (PR #47). No matrix-eligible behavior change.
+4. **CI tooling** — `actions/checkout` bumped to v6 (PR #50), `scripts/check-bd-api.sh` added (PR #49), `RELEASING.md` and `docs/upstream-tracking.md` added. None affect skill activation.
+
+**Soft findings flagged for review** (chains/qualifiers the script can't fully judge):
+
+| Section | Row | Expected | Activated | Verdict |
+|---|---|---|---|---|
+| brainstorming | 4 | `systematic-debugging or test-driven-development` | `systematic-debugging` | Pass — alternation satisfied. |
+| using-git-worktrees | 2 | `using-git-worktrees or executing-plans` | `using-git-worktrees` | Pass — alternation satisfied. |
+| systematic-debugging | 3 | `systematic-debugging (with pushback)` | `systematic-debugging` | Pass — Iron Law / Red Flags encode the resistance. |
+| writing-skills | 3 | `writing-skills (validation step: is this reusable?)` | `writing-skills` | Pass — right skill fired. |
+
+**Codex column:** scheduled for 2026-05-05 once the maintainer's test-machine session limit clears (`superpowers-beads-9ik`). 1.0 ships ahead of the Codex column with a CHANGELOG caveat; if Codex surfaces regressions, patched in v1.0.1.

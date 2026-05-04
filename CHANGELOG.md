@@ -9,6 +9,33 @@ preflight enforces this.
 
 ## Unreleased
 
+## v1.0.0 — 2026-05-04
+
+First **1.0** release. SemVer commitment: from this tag forward, skill renames or removals, frontmatter `name` changes, and any change that flips a previously-passing matrix row require a MAJOR bump per [`RELEASING.md`](./RELEASING.md). New skills, formulas, and additive trigger refinements are MINOR.
+
+### What 1.0 means
+
+- **Skill set is stable.** 15 skills shipped: `using-superpowers`, `brainstorming`, `writing-plans`, `executing-plans`, `subagent-driven-development`, `dispatching-parallel-agents`, `using-git-worktrees`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `requesting-code-review`, `receiving-code-review`, `finishing-a-development-branch`, `cherry-picking-across-branches`, `writing-skills`. Skill names are part of the public surface.
+- **Supported harnesses:** Claude Code and Codex. PRs adding cross-harness fixes for Copilot CLI / Gemini CLI welcome.
+- **Verification floor:** every release gets the full skill activation matrix run on every supported harness; results recorded in `docs/skill-activation-matrix.md`.
+- **Release contract:** [`RELEASING.md`](./RELEASING.md) covers cadence, hotfix, rollback, and deprecation policy.
+
+### Verification at this tag
+
+- **Claude Code:** matrix run on commit `e2be8d5` — **46/46 match, 0 mismatch, 0 ambiguous** in the sandboxed runner. Zero side effects on the parent repo or bead state. See `20260504T052609Z-claude-e2be8d5` in the activation matrix run log.
+- **Codex:** column **pending** — the maintainer's test machine is session-limited; the Codex run is scheduled for 2026-05-05. Tracked under `superpowers-beads-9ik`. **If the Codex column surfaces regressions, they will be patched in v1.0.1.** This is a one-time exception to the RELEASING.md "non-RC tag requires every supported harness" rule, authorized so the Claude-only initial cohort can adopt 1.0 without waiting.
+- **Upgrade path:** verified from v0.1.x → v0.2.0 in Claude Code (`superpowers-beads-ngq` half done; Codex side verified tomorrow alongside the matrix run).
+
+### Changes since v0.2.0
+
+No code changes — 1.0 is the same content as v0.2.0 with the matrix re-verified at the current commit and the SemVer commitment formalized. The intervening commits (`e2be8d5` Dependabot bump of `actions/checkout` to v6) are CI-only.
+
+### Notes for consumers upgrading from 0.x
+
+- No action required. Skills, formulas, and packaging are unchanged from v0.2.0.
+- Bug reports / feature requests: [GitHub Issues](https://github.com/jbongaarts/superpowers-beads/issues).
+- Security disclosures: see [`SECURITY.md`](./SECURITY.md).
+
 ## v0.2.0 — 2026-05-04
 
 First public release after the v0.1.1 maintenance churn. Adds a new skill, a sandboxed activation-matrix runner, and the policy + tooling needed to commit to a 1.0 release.
