@@ -8,7 +8,6 @@ plugin name reuse is safe."""
 
 import json
 from pathlib import Path
-from typing import Union
 
 import yaml
 
@@ -27,7 +26,7 @@ _BODY_STUB = (
 
 def build_variant_plugin(
     description: str,
-    dest: Union[str, Path],
+    dest: str | Path,
     plugin_name: str = DEFAULT_PLUGIN_NAME,
     skill_name: str = DEFAULT_SKILL_NAME,
 ) -> Path:

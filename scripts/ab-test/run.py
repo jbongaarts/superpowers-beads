@@ -11,6 +11,7 @@ Usage:
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -29,7 +30,11 @@ from build_plugin import build_variant_plugin
 from detect import analyze_stream
 from executor import execute_cells
 from report import format_summary, summarize
-from runner import extract_usage, run_cell
+from runner import extract_rate_limit_status, extract_usage, run_cell
+
+
+MIN_CLAUDE_VERSION = (2, 1, 132)
+ESTIMATED_INPUT_TOKENS_PER_CELL = 10_000
 
 
 def _load_yaml(path: Path) -> dict:
@@ -47,14 +52,53 @@ def _resolve_models(models_arg: list[str] | None) -> list[str]:
     return models_arg or ["claude-sonnet-4-6"]
 
 
-def _filter(items: list[dict], ids: list[str] | None, key: str) -> list[dict]:
+def _parse_claude_version(output: str) -> tuple[int, int, int] | None:
+    match = re.search(r"\b(\d+)\.(\d+)\.(\d+)\b", output)
+    if not match:
+        return None
+    return tuple(int(part) for part in match.groups())
+
+
+def _format_version(version: tuple[int, int, int]) -> str:
+    return ".".join(str(part) for part in version)
+
+
+def _check_claude_version(claude_path: str) -> None:
+    try:
+        proc = subprocess.run(
+            [claude_path, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise SystemExit(f"could not check claude CLI version: {exc}") from exc
+    output = f"{proc.stdout}\n{proc.stderr}"
+    if proc.returncode != 0:
+        raise SystemExit(f"could not check claude CLI version: {output.strip()}")
+    version = _parse_claude_version(output)
+    if version is None:
+        raise SystemExit(f"could not parse claude CLI version from: {output.strip()}")
+    if version < MIN_CLAUDE_VERSION:
+        raise SystemExit(
+            "claude CLI is too old for this harness: "
+            f"found {_format_version(version)}, need >= {_format_version(MIN_CLAUDE_VERSION)}"
+        )
+
+
+def _filter(
+    items: list[dict],
+    ids: list[str] | None,
+    key: str,
+    flag_name: str,
+) -> list[dict]:
     if not ids:
         return items
     wanted = set(ids)
     out = [i for i in items if i[key] in wanted]
     missing = wanted - {i[key] for i in items}
     if missing:
-        raise SystemExit(f"unknown ids in --{key.split('_')[0]}s filter: {sorted(missing)}")
+        raise SystemExit(f"unknown ids in --{flag_name} filter: {sorted(missing)}")
     return out
 
 
@@ -65,10 +109,10 @@ def _build_cells(
     n: int,
 ) -> list[dict]:
     cells = []
-    for variant in variants:
+    for rep in range(n):
         for prompt in prompts:
             for model in models:
-                for rep in range(n):
+                for variant in variants:
                     cells.append(
                         {
                             "variant_id": variant["id"],
@@ -80,6 +124,16 @@ def _build_cells(
                         }
                     )
     return cells
+
+
+def _stderr_excerpt(stderr: str | None, limit: int = 500) -> str:
+    return (stderr or "")[-limit:]
+
+
+def _shorten(text: str, limit: int = 60) -> str:
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1] + "…"
 
 
 def _print_preflight(
@@ -94,11 +148,19 @@ def _print_preflight(
 ) -> None:
     print(f"A/B harness preflight ({datetime.now(timezone.utc).isoformat()})")
     print(f"  variants: {len(variants)} -> {[v['id'] for v in variants]}")
+    for variant in variants:
+        print(f"    {variant['id']}: {_shorten(variant['description'])}")
     print(f"  prompts:  {len(prompts)} -> {[p['id'] for p in prompts]}")
     print(f"  models:   {len(models)} -> {models}")
     print(f"  reps:     {n}")
     print(f"  total cells: {len(cells)}")
     print(f"  concurrency: {concurrency}")
+    estimated_input_tokens = len(cells) * ESTIMATED_INPUT_TOKENS_PER_CELL
+    print(
+        "  estimated input tokens: "
+        f"~{estimated_input_tokens:,} "
+        f"(~{ESTIMATED_INPUT_TOKENS_PER_CELL:,}/cell back-of-envelope)"
+    )
     print(f"  output: {output}")
     print(
         "  auth: subscription via your installed `claude` CLI (Pro 5h bucket). "
@@ -127,6 +189,7 @@ def _timeout_record(cell: dict, timeout_seconds: int) -> dict:
         "cache_creation_input_tokens": None,
         "duration_ms": timeout_seconds * 1000,
         "total_cost_usd": None,
+        "rate_limit_status": None,
         "returncode": None,
         "stderr_excerpt": "TIMEOUT",
     }
@@ -155,6 +218,7 @@ def _record_for_cell(
         target_skill=target_skill,
     )
     usage = extract_usage(result["stdout_lines"])
+    rate_limit_status = extract_rate_limit_status(result["stdout_lines"])
 
     return {
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -173,8 +237,9 @@ def _record_for_cell(
         "cache_creation_input_tokens": usage["cache_creation_input_tokens"],
         "duration_ms": usage["duration_ms"] or elapsed_ms,
         "total_cost_usd": usage["total_cost_usd"],
+        "rate_limit_status": rate_limit_status,
         "returncode": result["returncode"],
-        "stderr_excerpt": (result["stderr"] or "")[:500],
+        "stderr_excerpt": _stderr_excerpt(result["stderr"]),
     }
 
 
@@ -262,8 +327,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     variants_data = _load_yaml(args.variants_file)
     prompts_data = _load_yaml(args.prompts_file)
 
-    variants = _filter(variants_data["variants"], _split_csv(args.variants), "id")
-    prompts = _filter(prompts_data["prompts"], _split_csv(args.prompts), "id")
+    variants = _filter(
+        variants_data["variants"], _split_csv(args.variants), "id", "variants"
+    )
+    prompts = _filter(
+        prompts_data["prompts"], _split_csv(args.prompts), "id", "prompts"
+    )
     models = _resolve_models(args.models)
 
     if not variants:
@@ -289,6 +358,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise SystemExit(
             f"claude CLI not found at {args.claude!r}; pass --claude /path/to/claude"
         )
+    _check_claude_version(args.claude)
 
     work_root = Path(tempfile.mkdtemp(prefix="ab-test-"))
     plugin_dirs: dict[str, Path] = {}

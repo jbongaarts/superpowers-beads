@@ -19,7 +19,12 @@ def _iter_rows(path: Path) -> Iterable[Mapping]:
 
 def summarize(path: Path) -> List[dict]:
     buckets: dict = defaultdict(
-        lambda: {"n": 0, "activations": 0, "excluded_unvalidated": 0}
+        lambda: {
+            "n": 0,
+            "activations": 0,
+            "excluded_unvalidated": 0,
+            "rate_limited": 0,
+        }
     )
     order: list = []
     for row in _iter_rows(Path(path)):
@@ -31,6 +36,8 @@ def summarize(path: Path) -> List[dict]:
             bucket["excluded_unvalidated"] += 1
             continue
         bucket["n"] += 1
+        if row.get("rate_limit_status"):
+            bucket["rate_limited"] += 1
         if row.get("activated"):
             bucket["activations"] += 1
 
@@ -46,13 +53,14 @@ def summarize(path: Path) -> List[dict]:
                 "activations": b["activations"],
                 "activation_rate": rate,
                 "excluded_unvalidated": b["excluded_unvalidated"],
+                "rate_limited": b["rate_limited"],
             }
         )
     return cells
 
 
 def format_summary(cells: Sequence[Mapping]) -> str:
-    headers = ["variant", "model", "rate", "count", "excluded"]
+    headers = ["variant", "model", "rate", "count", "excluded", "rate_limited"]
     rows = [
         [
             str(c["variant_id"]),
@@ -60,11 +68,12 @@ def format_summary(cells: Sequence[Mapping]) -> str:
             f"{c['activations']}/{c['n']}" if c["n"] else "0/0",
             f"{c['activation_rate'] * 100:.0f}%" if c["n"] else "—",
             str(c["excluded_unvalidated"]),
+            str(c.get("rate_limited", 0)),
         ]
         for c in cells
     ]
     widths = [
-        max(len(headers[i]), *(len(r[i]) for r in rows) if rows else (0,))
+        max([len(headers[i])] + [len(r[i]) for r in rows])
         for i in range(len(headers))
     ]
 

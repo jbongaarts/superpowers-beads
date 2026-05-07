@@ -7,7 +7,7 @@ filesystem settings, --plugin-dir loads exactly the variant plugin, and
 import json
 import subprocess
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Sequence
 
 
 def build_command(
@@ -84,3 +84,20 @@ def extract_usage(stdout_lines: Sequence[str]) -> dict:
         out["duration_ms"] = event.get("duration_ms")
         out["total_cost_usd"] = event.get("total_cost_usd")
     return out
+
+
+def extract_rate_limit_status(stdout_lines: Sequence[str]) -> str | None:
+    """Return the first rate-limit status surfaced by the claude stream."""
+    for line in stdout_lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") != "rate_limit_event":
+            continue
+        info = event.get("rate_limit_info") or {}
+        return info.get("status")
+    return None

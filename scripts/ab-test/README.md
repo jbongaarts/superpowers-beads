@@ -29,6 +29,10 @@ For each `(variant, prompt, model, rep)` cell:
 The signal is binary per cell. Aggregate activation rates per
 `(variant, model)` over `n` reps and any number of prompts.
 
+Cells run in rep/prompt/model order with variants adjacent inside each group.
+That keeps partial JSONLs less biased if a run is interrupted before every
+cell completes.
+
 ## Variant injection mechanism
 
 Hermetic per-cell sessions, **not** mutate-and-restore on `~/.claude/`.
@@ -84,6 +88,9 @@ python3 scripts/ab-test/run.py \
   --yes
 ```
 
+`--variants` and `--prompts` use comma-separated ids because they filter fixed
+YAML banks. `--models` accepts one or more space-separated Claude model ids.
+
 The harness defaults to `--concurrency 4`, which runs up to four cells at once
 with independent temp plugin trees and fresh Claude sessions. Use
 `--concurrency 1` for strict sequential execution when debugging order-sensitive
@@ -94,13 +101,19 @@ lower concurrency before increasing `--n`.
 Output:
 
 - Per-run JSONL: `scripts/ab-test/results/run-<utc-ts>.jsonl` (one row per cell)
-- Activation-rate summary table printed at the end
+- Activation-rate summary table printed at the end, including excluded and
+  rate-limited row counts
 
 To re-summarize an existing JSONL without re-running:
 
 ```bash
 python3 scripts/ab-test/report.py scripts/ab-test/results/run-<utc-ts>.jsonl
 ```
+
+When a run is used as evidence for a description change, promote the JSONL into
+`scripts/ab-test/results/promoted/<bead-id>.jsonl` and commit it with the code
+or skill change it supports. Leave ordinary exploratory runs under
+`scripts/ab-test/results/run-<utc-ts>.jsonl`; those remain ignored.
 
 ## JSONL row schema
 
@@ -122,6 +135,7 @@ python3 scripts/ab-test/report.py scripts/ab-test/results/run-<utc-ts>.jsonl
   "cache_creation_input_tokens": 5163,
   "duration_ms": 1271,
   "total_cost_usd": 0.0092,
+  "rate_limit_status": null,
   "returncode": 0,
   "stderr_excerpt": ""
 }
@@ -129,7 +143,8 @@ python3 scripts/ab-test/report.py scripts/ab-test/results/run-<utc-ts>.jsonl
 
 `harness_validated == false` rows are excluded from `report.py` rate
 calculations and counted separately as `excluded` so you can spot variant
-loading regressions.
+loading regressions. Rows with a Claude `rate_limit_event` carry
+`rate_limit_status` and are counted in the `rate_limited` summary column.
 
 ## Adding a new variant
 
@@ -160,7 +175,9 @@ the bank small and reproducible rather than sampled live.
 
 `--models` accepts one or more identifiers per the `claude --model` flag (e.g.
 `claude-sonnet-4-6`, `claude-opus-4-7`, `claude-haiku-4-5`). The model field is
-recorded verbatim in each JSONL row.
+recorded verbatim in each JSONL row. The harness checks `claude --version` at
+startup and requires Claude Code 2.1.132 or newer, the first version validated
+against the current stream-json fields.
 
 ## Tests
 
@@ -169,9 +186,9 @@ cd scripts/ab-test
 python3 -m unittest discover tests -v
 ```
 
-Pure-logic modules (`detect`, `build_plugin`, `executor`, `report`) have unit
-tests. `runner` and `run` are validated by an `--n 1` end-to-end run because
-they exercise the real `claude` CLI.
+Pure-logic modules (`detect`, `build_plugin`, `executor`, `report`, `runner`,
+and `run`) have unit tests. Full end-to-end confidence still comes from a small
+`--n 1` run because it exercises the real `claude` CLI.
 
 ## Files
 

@@ -27,6 +27,7 @@ def make_row(variant, model, activated, prompt="p1", rep=0):
         "cache_read_input_tokens": 0,
         "cache_creation_input_tokens": 0,
         "duration_ms": 1000,
+        "rate_limit_status": None,
     }
 
 
@@ -99,6 +100,16 @@ class SummarizeTest(unittest.TestCase):
         self.assertEqual(cells[0]["n"], 1)
         self.assertEqual(cells[0]["activations"], 0)
         self.assertEqual(cells[0]["excluded_unvalidated"], 1)
+
+    def test_summarize_counts_rate_limited_runs(self):
+        limited = make_row("current", "sonnet", activated=False)
+        limited["rate_limit_status"] = "rejected"
+        rows = [limited, make_row("current", "sonnet", activated=False)]
+        self.write_rows(rows)
+        cells = summarize(self.path)
+
+        self.assertEqual(cells[0]["rate_limited"], 1)
+        self.assertIn("rate_limited", format_summary(cells))
 
 
 if __name__ == "__main__":
