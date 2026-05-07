@@ -92,7 +92,7 @@ bd mol pour superpowers-skill-authoring --var title="<skill change>" --var skill
 
 Mandatory shape:
 
-- YAML frontmatter with `name` (kebab-case) and `description` (must start with "Use when" and describe trigger conditions only — `scripts/check-skill-frontmatter.sh` enforces non-empty fields).
+- YAML frontmatter with `name` (kebab-case) and `description` (must describe trigger conditions only, front-load distinctive trigger words, and include useful anti-trigger boundaries; "Use when" is allowed but not required). `scripts/check-skill-frontmatter.sh` enforces non-empty fields.
 
 Attribution for skills derived from obra/superpowers is carried at the repo level by `LICENSE` (MIT notice plus the "Portions of this work are derived from 'superpowers' by Jesse Vincent" line). Per-file headers are not required.
 

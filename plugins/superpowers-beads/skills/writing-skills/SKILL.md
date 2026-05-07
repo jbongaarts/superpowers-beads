@@ -84,7 +84,7 @@ Add supporting files only when they materially reduce context load or provide re
 
 Keep `SKILL.md` concise. Include:
 - YAML frontmatter with `name` and `description`.
-- A description that starts with "Use when" and only describes trigger conditions.
+- A description that only describes trigger conditions, front-loads distinctive trigger words, and includes anti-trigger boundaries when they prevent likely false positives. "Use when" is allowed but not required.
 - A short overview and core principle.
 - The smallest workflow that changes agent behavior.
 - Specific red flags, anti-patterns, or command examples only when they prevent real failure.
