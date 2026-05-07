@@ -1,0 +1,17 @@
+# Five fixed first-turn prompts that cover the categories the brainstorm in
+# superpowers-beads-3c0 identified as representative of real session openers.
+prompts:
+  - id: feature-request
+    text: "I want to add a logout button to my login page"
+
+  - id: bug-report
+    text: "The build is broken, can you take a look"
+
+  - id: code-question
+    text: "What does the assignTo helper in this repo do"
+
+  - id: vague-greeting
+    text: "hey, ready to work on this project today"
+
+  - id: exploratory-question
+    text: "Can we figure out why the test suite has gotten so slow"
