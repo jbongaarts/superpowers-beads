@@ -58,7 +58,8 @@ Implications:
 - Token usage is logged per cell; extrapolate from a small calibration pilot
   before committing to a large `--n`.
 - The harness refuses to run without `--yes`. The preflight prints planned
-  cell count + model breakdown so you can see what you are about to spend.
+  cell count, model breakdown, and concurrency so you can see what you are
+  about to spend.
 
 To use API-key auth instead, prepend `ANTHROPIC_API_KEY=...` and pass an
 explicit `--claude` to a CLI built without your subscription session — we have
@@ -73,6 +74,7 @@ python3 scripts/ab-test/run.py \
   --prompts feature-request \
   --models claude-haiku-4-5 \
   --n 1 \
+  --concurrency 1 \
   --yes
 
 # Calibration pilot recommended in the epic (4 variants x 5 prompts x 2 models x 2 reps = 80 cells)
@@ -81,6 +83,13 @@ python3 scripts/ab-test/run.py \
   --n 2 \
   --yes
 ```
+
+The harness defaults to `--concurrency 4`, which runs up to four cells at once
+with independent temp plugin trees and fresh Claude sessions. Use
+`--concurrency 1` for strict sequential execution when debugging order-sensitive
+output. Raise it only after a small pilot confirms your subscription bucket can
+handle the parallel load; if stderr excerpts show rate-limit or bucket pressure,
+lower concurrency before increasing `--n`.
 
 Output:
 
@@ -160,15 +169,16 @@ cd scripts/ab-test
 python3 -m unittest discover tests -v
 ```
 
-Pure-logic modules (`detect`, `build_plugin`, `report`) have unit tests.
-`runner` and `run` are validated by an `--n 1` end-to-end run because they
-exercise the real `claude` CLI.
+Pure-logic modules (`detect`, `build_plugin`, `executor`, `report`) have unit
+tests. `runner` and `run` are validated by an `--n 1` end-to-end run because
+they exercise the real `claude` CLI.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `run.py` | CLI entry point: argparse, preflight, cell loop, JSONL writer |
+| `executor.py` | Sequential or parallel cell execution wrapper |
 | `runner.py` | Subprocess wrapper around `claude` CLI; usage extraction |
 | `build_plugin.py` | Build temp plugin tree from a variant frontmatter |
 | `detect.py` | Stream-json walker: harness validation + activation detection |

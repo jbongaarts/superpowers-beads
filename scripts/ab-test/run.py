@@ -27,6 +27,7 @@ sys.path.insert(0, str(HERE))
 
 from build_plugin import build_variant_plugin
 from detect import analyze_stream
+from executor import execute_cells
 from report import format_summary, summarize
 from runner import extract_usage, run_cell
 
@@ -88,6 +89,7 @@ def _print_preflight(
     models: list[str],
     n: int,
     output: Path,
+    concurrency: int,
     yes: bool,
 ) -> None:
     print(f"A/B harness preflight ({datetime.now(timezone.utc).isoformat()})")
@@ -96,6 +98,7 @@ def _print_preflight(
     print(f"  models:   {len(models)} -> {models}")
     print(f"  reps:     {n}")
     print(f"  total cells: {len(cells)}")
+    print(f"  concurrency: {concurrency}")
     print(f"  output: {output}")
     print(
         "  auth: subscription via your installed `claude` CLI (Pro 5h bucket). "
@@ -104,6 +107,29 @@ def _print_preflight(
     if not yes:
         print()
         print("Refusing to start without --yes. Re-run with --yes to proceed.")
+
+
+def _timeout_record(cell: dict, timeout_seconds: int) -> dict:
+    return {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "variant_id": cell["variant_id"],
+        "prompt_id": cell["prompt_id"],
+        "model": cell["model"],
+        "rep": cell["rep"],
+        "harness_validated": False,
+        "activated": False,
+        "first_tool_call": None,
+        "first_tool_skill_name": None,
+        "first_tool_call_block_index": None,
+        "input_tokens": None,
+        "output_tokens": None,
+        "cache_read_input_tokens": None,
+        "cache_creation_input_tokens": None,
+        "duration_ms": timeout_seconds * 1000,
+        "total_cost_usd": None,
+        "returncode": None,
+        "stderr_excerpt": "TIMEOUT",
+    }
 
 
 def _record_for_cell(
@@ -220,6 +246,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=180,
         help="Per-cell subprocess timeout in seconds.",
     )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=4,
+        help=(
+            "Number of cells to run in parallel via ThreadPoolExecutor. "
+            "Default 4 — drop to 1 for strict sequential, raise if your Pro "
+            "bucket tolerates it. If you see rate-limit events in stderr, "
+            "lower this."
+        ),
+    )
     args = parser.parse_args(argv)
 
     variants_data = _load_yaml(args.variants_file)
@@ -242,7 +279,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         output = HERE / "results" / f"run-{ts}.jsonl"
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    _print_preflight(cells, variants, prompts, models, args.n, output, args.yes)
+    _print_preflight(
+        cells, variants, prompts, models, args.n, output, args.concurrency, args.yes
+    )
     if not args.yes:
         return 1
 
@@ -262,48 +301,33 @@ def main(argv: Sequence[str] | None = None) -> int:
                 skill_name=args.target_skill,
             )
 
-        with output.open("w") as fh:
-            for index, cell in enumerate(cells, start=1):
-                print(
-                    f"[{index}/{len(cells)}] variant={cell['variant_id']} "
-                    f"prompt={cell['prompt_id']} model={cell['model']} rep={cell['rep']}",
-                    flush=True,
+        def worker(cell: dict) -> dict:
+            try:
+                return _record_for_cell(
+                    cell=cell,
+                    target_plugin=args.target_plugin,
+                    target_skill=args.target_skill,
+                    plugin_dir=plugin_dirs[cell["variant_id"]],
+                    claude_path=args.claude,
+                    timeout_seconds=args.cell_timeout,
                 )
-                try:
-                    record = _record_for_cell(
-                        cell=cell,
-                        target_plugin=args.target_plugin,
-                        target_skill=args.target_skill,
-                        plugin_dir=plugin_dirs[cell["variant_id"]],
-                        claude_path=args.claude,
-                        timeout_seconds=args.cell_timeout,
-                    )
-                except subprocess.TimeoutExpired:
-                    record = {
-                        "ts": datetime.now(timezone.utc).isoformat(),
-                        "variant_id": cell["variant_id"],
-                        "prompt_id": cell["prompt_id"],
-                        "model": cell["model"],
-                        "rep": cell["rep"],
-                        "harness_validated": False,
-                        "activated": False,
-                        "first_tool_call": None,
-                        "first_tool_skill_name": None,
-                        "first_tool_call_block_index": None,
-                        "input_tokens": None,
-                        "output_tokens": None,
-                        "cache_read_input_tokens": None,
-                        "cache_creation_input_tokens": None,
-                        "duration_ms": args.cell_timeout * 1000,
-                        "total_cost_usd": None,
-                        "returncode": None,
-                        "stderr_excerpt": "TIMEOUT",
-                    }
+            except subprocess.TimeoutExpired:
+                return _timeout_record(cell, args.cell_timeout)
+
+        with output.open("w") as fh:
+            for done_count, cell, record in execute_cells(
+                cells, worker, concurrency=args.concurrency
+            ):
                 fh.write(json.dumps(record) + "\n")
                 fh.flush()
                 status = "ACT" if record.get("activated") else "----"
                 tool = record.get("first_tool_call") or "(none)"
-                print(f"    -> {status} first_tool={tool}", flush=True)
+                print(
+                    f"[{done_count}/{len(cells)}] variant={cell['variant_id']} "
+                    f"prompt={cell['prompt_id']} model={cell['model']} rep={cell['rep']} "
+                    f"-> {status} first_tool={tool}",
+                    flush=True,
+                )
     finally:
         shutil.rmtree(work_root, ignore_errors=True)
 
