@@ -67,6 +67,20 @@ class BuildVariantPluginTest(unittest.TestCase):
         manifest = json.loads((dest / ".claude-plugin" / "plugin.json").read_text())
         self.assertEqual(manifest["name"], "custom-thing")
 
+    def test_writes_codex_repo_skill_tree(self):
+        dest = self.tmp / "variant-codex"
+        description = "Codex candidate description"
+        build_variant_plugin(description=description, dest=dest)
+
+        skill_md = (
+            dest / ".agents" / "skills" / "using-superpowers" / "SKILL.md"
+        ).read_text()
+        self.assertTrue(skill_md.startswith("---\n"))
+        body_start = skill_md.index("\n---\n", 4)
+        frontmatter = yaml.safe_load(skill_md[4:body_start])
+        self.assertEqual(frontmatter["name"], "using-superpowers")
+        self.assertEqual(frontmatter["description"], description)
+
 
 if __name__ == "__main__":
     unittest.main()

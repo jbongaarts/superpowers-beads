@@ -55,4 +55,8 @@ def build_variant_plugin(
     )
     skill_md = f"---\n{frontmatter}---\n\n{_BODY_STUB}"
     (skill_dir / "SKILL.md").write_text(skill_md)
+
+    codex_skill_dir = dest / ".agents" / "skills" / skill_name
+    codex_skill_dir.mkdir(parents=True, exist_ok=True)
+    (codex_skill_dir / "SKILL.md").write_text(skill_md)
     return dest

@@ -1,6 +1,8 @@
 import io
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -13,7 +15,10 @@ import run
 
 class RunTest(unittest.TestCase):
     def test_parse_claude_version(self):
-        self.assertEqual(run._parse_claude_version("2.1.132 (Claude Code)"), (2, 1, 132))
+        self.assertEqual(
+            run._parse_claude_version("2.1.132 (Claude Code)"),
+            (2, 1, 132),
+        )
         self.assertIsNone(run._parse_claude_version("Claude Code dev build"))
 
     def test_check_claude_version_rejects_old_cli(self):
@@ -129,6 +134,52 @@ class RunTest(unittest.TestCase):
             )
 
         self.assertEqual(record["rate_limit_status"], "rejected")
+
+    def test_record_for_codex_cell_uses_codex_analysis(self):
+        cell = {
+            "variant_id": "current",
+            "prompt_id": "feature",
+            "model": "default",
+            "rep": 0,
+            "prompt_text": "prompt",
+        }
+        workspace_dir = Path(tempfile.mkdtemp(prefix="ab-test-codex-"))
+        skill_dir = workspace_dir / ".agents" / "skills" / "using-superpowers"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("---\nname: using-superpowers\n---\n")
+        with (
+            mock.patch(
+                "run.run_codex_cell",
+                return_value={
+                    "returncode": 0,
+                    "stdout_lines": [
+                        '{"type":"item.completed","item":{"type":"command_execution",'
+                        '"command":"cat .agents/skills/using-superpowers/SKILL.md"}}'
+                    ],
+                    "stderr": "",
+                },
+            ),
+        ):
+            try:
+                record = run._record_for_codex_cell(
+                    cell=cell,
+                    target_skill="using-superpowers",
+                    workspace_dir=workspace_dir,
+                    codex_path="codex",
+                    timeout_seconds=180,
+                )
+            finally:
+                shutil.rmtree(workspace_dir, ignore_errors=True)
+
+        self.assertTrue(record["harness_validated"])
+        self.assertTrue(record["activated"])
+        self.assertEqual(record["first_tool_call"], "command_execution")
+        self.assertEqual(record["first_tool_skill_name"], "using-superpowers")
+        self.assertEqual(record["returncode"], 0)
+        self.assertIsNone(record["input_tokens"])
+
+    def test_resolve_models_uses_codex_default_sentinel(self):
+        self.assertEqual(run._resolve_models("codex", None), ["default"])
 
     def test_print_preflight_shows_variant_descriptions_and_token_estimate(self):
         cells = [{"variant_id": "current"}, {"variant_id": "a"}]
