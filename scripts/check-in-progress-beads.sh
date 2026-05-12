@@ -3,10 +3,16 @@ set -eu
 
 allowed_in_progress="${ALLOW_IN_PROGRESS:-}"
 
+# `bd show --current --json` returns an array of issue objects when an issue is
+# current, but a bare `{error, schema_version}` object (and exit 1) when nothing
+# is — which is the normal state in CI after a fresh `bd bootstrap`. Pipe
+# through `objects` so the error-object's string values are dropped instead of
+# crashing jq, and swallow jq failures on empty/garbled input.
 current_json="$(bd show --current --json 2>/dev/null || true)"
 current_in_progress="$(
   printf '%s' "$current_json" \
-    | jq -r '[.[]? | select(.status == "in_progress") | .id] | join(",")'
+    | jq -r '[.[]? | objects | select(.status == "in_progress") | .id] | join(",")' 2>/dev/null \
+    || true
 )"
 
 if [ -n "$current_in_progress" ]; then
