@@ -45,6 +45,14 @@ Cells run in rep/prompt/model order with variants adjacent inside each group.
 That keeps partial JSONLs less biased if a run is interrupted before every
 cell completes.
 
+If a cell fails to a model rate limit (hard 429, "usage limit" / "quota", or a
+rejected unified rate-limit status — distinct from a soft `allowed_warning`
+event, which still returns a real answer), the run **stops**: cells already in
+flight finish, every later cell is skipped, the partial JSONL is kept, and the
+harness prints the exact `--resume` command to finish the rest once your bucket
+resets. The process exits `2` (vs `0` for a clean finish, `1` for a refused
+preflight). See "Resuming after a rate limit" below.
+
 ## Variant injection mechanism
 
 Hermetic per-cell sessions, **not** mutate-and-restore on `~/.claude/`.
@@ -83,6 +91,9 @@ Implications:
 - The harness refuses to run without `--yes`. The preflight prints planned
   cell count, model breakdown, and concurrency so you can see what you are
   about to spend.
+- If the bucket runs out mid-run, the harness stops itself on the first
+  rate-limited cell rather than burning the remainder. Resume with `--resume`
+  once it resets (see "Resuming after a rate limit").
 
 To use API-key auth instead, prepend `ANTHROPIC_API_KEY=...` and pass an
 explicit `--claude` to a CLI built without your subscription session — we have
@@ -134,11 +145,48 @@ Output:
 - Activation-rate summary table printed at the end, including excluded and
   rate-limited row counts
 
-To re-summarize an existing JSONL without re-running:
+To re-summarize an existing JSONL without re-running — pass one file, or
+several (an original run plus its `--resume` runs) to combine them:
 
 ```bash
 python3 scripts/ab-test/report.py scripts/ab-test/results/run-<utc-ts>.jsonl
+python3 scripts/ab-test/report.py results/run-A.jsonl results/run-B.jsonl
 ```
+
+## Resuming after a rate limit
+
+A large Claude run (hundreds of cells) is likely to exhaust your Pro 5h bucket
+mid-run. When that happens the harness stops on the first rate-limited cell,
+keeps the partial JSONL, and prints a `--resume` command. After your bucket
+resets, run that command: `--resume <prev.jsonl>` (repeatable) skips every cell
+already completed in the prior file(s) and runs only the remainder, into a new
+JSONL. Then point `report.py` at all the files to get the combined table.
+
+```bash
+# Run 1 — say it stops after 51 of 400 cells on a rate limit
+python3 scripts/ab-test/run.py --models claude-sonnet-4-6 --n 80 --yes
+#   ⚠ Run stopped early on a model rate limit: rate_limit_event status=rejected
+#   ...When your usage limit resets, finish the test with:
+#     python3 scripts/ab-test/run.py --n 80 --resume results/run-<ts1>.jsonl --yes
+
+# Run 2 — after the reset; does the remaining ~349 cells
+python3 scripts/ab-test/run.py --n 80 --resume results/run-<ts1>.jsonl --yes
+
+# Combined 400-cell summary
+python3 scripts/ab-test/report.py results/run-<ts1>.jsonl results/run-<ts2>.jsonl
+```
+
+Notes:
+
+- The resume run must use the same variant/prompt/model/`--n` selection as the
+  original (it skips by `(variant, prompt, model, rep)`); pass back any other
+  non-default flags you used. The printed resume command already includes them.
+- Rate-limit casualty rows are written to the JSONL with `rate_limited_failure`
+  set; `--resume` re-runs those cells and `report.py` ignores them.
+- If a resume run still doesn't get through everything, it stops and prints the
+  next `--resume` command (now chaining both prior files). Repeat as needed.
+- A resume run whose cells are all already complete prints "nothing to run" and
+  exits `0`.
 
 When a run is used as evidence for a description change, promote the JSONL into
 `scripts/ab-test/results/promoted/<bead-id>.jsonl` and commit it with the code
@@ -166,6 +214,7 @@ or skill change it supports. Leave ordinary exploratory runs under
   "duration_ms": 1271,
   "total_cost_usd": 0.0092,
   "rate_limit_status": null,
+  "rate_limited_failure": null,
   "returncode": 0,
   "stderr_excerpt": ""
 }
@@ -174,8 +223,11 @@ or skill change it supports. Leave ordinary exploratory runs under
 `harness_validated == false` rows are excluded from `report.py` rate
 calculations and counted separately as `excluded` so you can spot variant
 loading regressions. Rows with a Claude `rate_limit_event` carry
-`rate_limit_status` and are counted in the `rate_limited` summary column. Codex
-rows leave token/cost/rate-limit fields as `null` unless the Codex CLI exposes
+`rate_limit_status` (e.g. `allowed_warning`) and are counted in the
+`rate_limited` summary column. `rate_limited_failure` is `null` unless the cell
+failed *because* of throttling — those rows are the casualty marker the run
+stopped on; `report.py` skips them and `--resume` re-runs the cell. Codex rows
+leave token/cost/rate-limit fields as `null` unless the Codex CLI exposes
 compatible usage data in the future.
 
 ## Adding a new variant
@@ -221,9 +273,10 @@ python3 -m unittest discover tests -v
 ```
 
 Pure-logic modules (`detect`, `build_plugin`, `executor`, `report`, `runner`,
-`codex_runner`, and `run`) have unit tests. Full end-to-end confidence still
-comes from a small `--n 1` run because it exercises the real agent CLI. Use the
-Codex smoke shape above sparingly because it consumes the real Codex session.
+`codex_runner`, `ratelimit`, and `run` — including the stop-on-rate-limit loop)
+have unit tests. Full end-to-end confidence still comes from a small `--n 1` run
+because it exercises the real agent CLI. Use the Codex smoke shape above
+sparingly because it consumes the real Codex session.
 
 ## Files
 
@@ -235,7 +288,8 @@ Codex smoke shape above sparingly because it consumes the real Codex session.
 | `codex_runner.py` | Subprocess wrapper around `codex exec`; Codex activation detection |
 | `build_plugin.py` | Build temp plugin tree from a variant frontmatter |
 | `detect.py` | Stream-json walker: harness validation + activation detection |
-| `report.py` | Summarize a JSONL into a `(variant, model)` rate table |
+| `ratelimit.py` | Classify a cell's output as a model rate-limit failure (vs ordinary failure / soft warning) |
+| `report.py` | Summarize one or more JSONL files into a `(variant, model)` rate table |
 | `variants.yaml` | The 4 candidates from `superpowers-beads-3c0` |
 | `prompts.yaml` | The 5 fixed first-turn prompts |
 | `tests/` | Unit tests for the pure-logic modules |

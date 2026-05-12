@@ -1,11 +1,17 @@
-"""Summarize a JSONL run file into per-(variant, model) activation rates."""
+"""Summarize one or more JSONL run files into per-(variant, model) rates.
+
+Pass several files (an original run plus its `--resume` runs) to combine them
+into a single activation-rate table. Rate-limit casualty rows
+(`rate_limited_failure` set) are skipped — those cells are expected to be
+re-run in a resume file.
+"""
 
 import argparse
 import json
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Iterable, List, Mapping, Sequence
+from typing import Iterable, List, Mapping, Sequence, Union
 
 
 def _iter_rows(path: Path) -> Iterable[Mapping]:
@@ -17,7 +23,13 @@ def _iter_rows(path: Path) -> Iterable[Mapping]:
             yield json.loads(line)
 
 
-def summarize(path: Path) -> List[dict]:
+def _as_paths(paths: Union[str, Path, Iterable]) -> List[Path]:
+    if isinstance(paths, (str, Path)):
+        return [Path(paths)]
+    return [Path(p) for p in paths]
+
+
+def summarize(paths: Union[str, Path, Iterable]) -> List[dict]:
     buckets: dict = defaultdict(
         lambda: {
             "n": 0,
@@ -27,19 +39,22 @@ def summarize(path: Path) -> List[dict]:
         }
     )
     order: list = []
-    for row in _iter_rows(Path(path)):
-        key = (row["variant_id"], row["model"])
-        if key not in buckets:
-            order.append(key)
-        bucket = buckets[key]
-        if not row.get("harness_validated", False):
-            bucket["excluded_unvalidated"] += 1
-            continue
-        bucket["n"] += 1
-        if row.get("rate_limit_status"):
-            bucket["rate_limited"] += 1
-        if row.get("activated"):
-            bucket["activations"] += 1
+    for path in _as_paths(paths):
+        for row in _iter_rows(path):
+            if row.get("rate_limited_failure"):
+                continue
+            key = (row["variant_id"], row["model"])
+            if key not in buckets:
+                order.append(key)
+            bucket = buckets[key]
+            if not row.get("harness_validated", False):
+                bucket["excluded_unvalidated"] += 1
+                continue
+            bucket["n"] += 1
+            if row.get("rate_limit_status"):
+                bucket["rate_limited"] += 1
+            if row.get("activated"):
+                bucket["activations"] += 1
 
     cells = []
     for key in order:
@@ -87,9 +102,18 @@ def format_summary(cells: Sequence[Mapping]) -> str:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Summarize an ab-test results JSONL into an activation-rate table."
+        description=(
+            "Summarize one or more ab-test results JSONL files into an "
+            "activation-rate table. Pass an original run plus its --resume "
+            "runs to combine them."
+        )
     )
-    parser.add_argument("results", type=Path, help="Path to results-*.jsonl")
+    parser.add_argument(
+        "results",
+        type=Path,
+        nargs="+",
+        help="One or more results-*.jsonl files.",
+    )
     args = parser.parse_args(argv)
 
     cells = summarize(args.results)

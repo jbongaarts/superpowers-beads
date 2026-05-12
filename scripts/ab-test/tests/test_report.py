@@ -111,6 +111,39 @@ class SummarizeTest(unittest.TestCase):
         self.assertEqual(cells[0]["rate_limited"], 1)
         self.assertIn("rate_limited", format_summary(cells))
 
+    def test_summarize_skips_rate_limit_casualty_rows(self):
+        casualty = make_row("current", "sonnet", activated=False)
+        casualty["rate_limited_failure"] = "rate_limit_event status=rejected"
+        rows = [casualty, make_row("current", "sonnet", activated=True)]
+        self.write_rows(rows)
+        cells = summarize(self.path)
+
+        self.assertEqual(cells[0]["n"], 1)
+        self.assertEqual(cells[0]["activations"], 1)
+
+    def test_summarize_merges_multiple_files(self):
+        first = self.tmp / "run-1.jsonl"
+        second = self.tmp / "run-2.jsonl"
+        first.write_text(
+            "\n".join(
+                json.dumps(r)
+                for r in [
+                    make_row("current", "sonnet", activated=True, prompt="p1"),
+                    make_row("current", "sonnet", activated=False, prompt="p2"),
+                ]
+            )
+            + "\n"
+        )
+        second.write_text(
+            json.dumps(make_row("current", "sonnet", activated=True, prompt="p3"))
+            + "\n"
+        )
+        cells = summarize([first, second])
+
+        by_key = {(c["variant_id"], c["model"]): c for c in cells}
+        self.assertEqual(by_key[("current", "sonnet")]["n"], 3)
+        self.assertEqual(by_key[("current", "sonnet")]["activations"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

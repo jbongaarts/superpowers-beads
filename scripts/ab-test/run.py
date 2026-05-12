@@ -17,10 +17,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Sequence
+from typing import Mapping, Sequence
 
 import yaml
 
@@ -31,6 +32,7 @@ from build_plugin import build_variant_plugin
 from codex_runner import analyze_codex_stream, run_codex_cell
 from detect import analyze_stream
 from executor import execute_cells
+from ratelimit import detect_rate_limit
 from report import format_summary, summarize
 from runner import extract_rate_limit_status, extract_usage, run_cell
 
@@ -132,6 +134,62 @@ def _build_cells(
     return cells
 
 
+def _cell_key(row: Mapping) -> tuple:
+    return (row["variant_id"], row["prompt_id"], row["model"], row["rep"])
+
+
+def _completed_cell_keys(resume_paths: Sequence[Path]) -> set:
+    """Cell keys already finished in prior runs.
+
+    A row counts as finished unless it is a rate-limit casualty
+    (``rate_limited_failure`` set) — those cells are re-run on resume.
+    """
+    done: set = set()
+    for path in resume_paths:
+        with path.open() as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                row = json.loads(line)
+                if row.get("rate_limited_failure"):
+                    continue
+                done.add(_cell_key(row))
+    return done
+
+
+def _resume_command(args: argparse.Namespace, output: Path) -> str:
+    """Reconstruct a `run.py ... --resume <output>` command for the follow-up run."""
+    parts = ["python3 scripts/ab-test/run.py"]
+    if args.harness != "claude":
+        parts.append(f"--harness {args.harness}")
+    if args.variants:
+        parts.append(f"--variants {args.variants}")
+    if args.prompts:
+        parts.append(f"--prompts {args.prompts}")
+    if args.models:
+        parts.append("--models " + " ".join(args.models))
+    if args.n != 1:
+        parts.append(f"--n {args.n}")
+    if args.concurrency != 4:
+        parts.append(f"--concurrency {args.concurrency}")
+    if args.target_plugin != "superpowers-beads":
+        parts.append(f"--target-plugin {args.target_plugin}")
+    if args.target_skill != "using-superpowers":
+        parts.append(f"--target-skill {args.target_skill}")
+    if args.cell_timeout != 180:
+        parts.append(f"--cell-timeout {args.cell_timeout}")
+    if args.claude != "claude":
+        parts.append(f"--claude {args.claude}")
+    if args.codex != "codex":
+        parts.append(f"--codex {args.codex}")
+    for prev in args.resume or []:
+        parts.append(f"--resume {prev}")
+    parts.append(f"--resume {output}")
+    parts.append("--yes")
+    return " ".join(parts)
+
+
 def _stderr_excerpt(stderr: str | None, limit: int = 500) -> str:
     return (stderr or "")[-limit:]
 
@@ -152,6 +210,8 @@ def _print_preflight(
     concurrency: int,
     yes: bool,
     harness: str = "claude",
+    resume_files: Sequence[Path] = (),
+    resume_skipped: int = 0,
 ) -> None:
     print(f"A/B harness preflight ({datetime.now(timezone.utc).isoformat()})")
     print(f"  harness:  {harness}")
@@ -161,7 +221,14 @@ def _print_preflight(
     print(f"  prompts:  {len(prompts)} -> {[p['id'] for p in prompts]}")
     print(f"  models:   {len(models)} -> {models}")
     print(f"  reps:     {n}")
-    print(f"  total cells: {len(cells)}")
+    if resume_files:
+        print(
+            f"  resume:   skipping {resume_skipped} cell(s) already complete in "
+            f"{[str(p) for p in resume_files]}"
+        )
+        print(f"  total cells: {len(cells)} (of {len(cells) + resume_skipped} in the full plan)")
+    else:
+        print(f"  total cells: {len(cells)}")
     print(f"  concurrency: {concurrency}")
     estimated_input_tokens = len(cells) * ESTIMATED_INPUT_TOKENS_PER_CELL
     print(
@@ -205,6 +272,7 @@ def _timeout_record(cell: dict, timeout_seconds: int) -> dict:
         "duration_ms": timeout_seconds * 1000,
         "total_cost_usd": None,
         "rate_limit_status": None,
+        "rate_limited_failure": None,
         "returncode": None,
         "stderr_excerpt": "TIMEOUT",
     }
@@ -234,6 +302,9 @@ def _record_for_cell(
     )
     usage = extract_usage(result["stdout_lines"])
     rate_limit_status = extract_rate_limit_status(result["stdout_lines"])
+    rate_limited_failure = detect_rate_limit(
+        result["stdout_lines"], result["stderr"], result["returncode"]
+    )
 
     return {
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -253,6 +324,7 @@ def _record_for_cell(
         "duration_ms": usage["duration_ms"] or elapsed_ms,
         "total_cost_usd": usage["total_cost_usd"],
         "rate_limit_status": rate_limit_status,
+        "rate_limited_failure": rate_limited_failure,
         "returncode": result["returncode"],
         "stderr_excerpt": _stderr_excerpt(result["stderr"]),
     }
@@ -284,6 +356,9 @@ def _record_for_codex_cell(
         target_skill=target_skill,
     )
     harness_validated = _codex_workspace_has_skill(workspace_dir, target_skill)
+    rate_limited_failure = detect_rate_limit(
+        result["stdout_lines"], result["stderr"], result["returncode"]
+    )
 
     return {
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -303,6 +378,7 @@ def _record_for_codex_cell(
         "duration_ms": elapsed_ms,
         "total_cost_usd": None,
         "rate_limit_status": None,
+        "rate_limited_failure": rate_limited_failure,
         "returncode": result["returncode"],
         "stderr_excerpt": _stderr_excerpt(result["stderr"]),
     }
@@ -368,6 +444,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--resume",
+        type=Path,
+        action="append",
+        default=None,
+        metavar="RESULTS.jsonl",
+        help=(
+            "Path to a prior run's JSONL; cells already completed there are "
+            "skipped. Repeatable. Use after a run stopped on a rate limit to "
+            "finish the remaining cells once your usage bucket resets."
+        ),
+    )
+    parser.add_argument(
         "--claude",
         type=str,
         default="claude",
@@ -430,11 +518,31 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     cells = _build_cells(variants, prompts, models, args.n)
 
+    resume_paths = list(args.resume or [])
+    missing_resume = [str(p) for p in resume_paths if not p.is_file()]
+    if missing_resume:
+        raise SystemExit(f"--resume file(s) not found: {missing_resume}")
+    resume_skipped = 0
+    if resume_paths:
+        done_keys = _completed_cell_keys(resume_paths)
+        before = len(cells)
+        cells = [c for c in cells if _cell_key(c) not in done_keys]
+        resume_skipped = before - len(cells)
+
     output = args.output
     if output is None:
         ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         output = HERE / "results" / f"run-{ts}.jsonl"
     output.parent.mkdir(parents=True, exist_ok=True)
+
+    if resume_paths and not cells:
+        print(
+            "All requested cells are already complete in the --resume file(s); "
+            "nothing to run."
+        )
+        print()
+        print(format_summary(summarize(resume_paths)))
+        return 0
 
     _print_preflight(
         cells,
@@ -446,6 +554,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.concurrency,
         args.yes,
         harness=args.harness,
+        resume_files=resume_paths,
+        resume_skipped=resume_skipped,
     )
     if not args.yes:
         return 1
@@ -473,37 +583,69 @@ def main(argv: Sequence[str] | None = None) -> int:
                 skill_name=args.target_skill,
             )
 
+        # When a cell fails to a model rate limit we stop scheduling: cells
+        # still in flight finish, every later cell short-circuits to a "not
+        # run" sentinel, and the partial JSONL plus a --resume command lets a
+        # follow-up run finish the rest once the bucket resets.
+        stop_event = threading.Event()
+
         def worker(cell: dict) -> dict:
+            if stop_event.is_set():
+                return {"_unrun": True}
             try:
                 if args.harness == "codex":
-                    return _record_for_codex_cell(
+                    record = _record_for_codex_cell(
                         cell=cell,
                         target_skill=args.target_skill,
                         workspace_dir=plugin_dirs[cell["variant_id"]],
                         codex_path=args.codex,
                         timeout_seconds=args.cell_timeout,
                     )
-                return _record_for_cell(
-                    cell=cell,
-                    target_plugin=args.target_plugin,
-                    target_skill=args.target_skill,
-                    plugin_dir=plugin_dirs[cell["variant_id"]],
-                    claude_path=args.claude,
-                    timeout_seconds=args.cell_timeout,
-                )
+                else:
+                    record = _record_for_cell(
+                        cell=cell,
+                        target_plugin=args.target_plugin,
+                        target_skill=args.target_skill,
+                        plugin_dir=plugin_dirs[cell["variant_id"]],
+                        claude_path=args.claude,
+                        timeout_seconds=args.cell_timeout,
+                    )
             except subprocess.TimeoutExpired:
                 return _timeout_record(cell, args.cell_timeout)
+            if record.get("rate_limited_failure"):
+                stop_event.set()
+            return record
 
+        written = 0
+        casualties = 0
+        unrun = 0
+        rate_limit_reason: str | None = None
         with output.open("w") as fh:
             for done_count, cell, record in execute_cells(
                 cells, worker, concurrency=args.concurrency
             ):
+                if record.get("_unrun"):
+                    unrun += 1
+                    continue
                 fh.write(json.dumps(record) + "\n")
                 fh.flush()
+                written += 1
+                reason = record.get("rate_limited_failure")
+                if reason:
+                    casualties += 1
+                    if rate_limit_reason is None:
+                        rate_limit_reason = reason
+                        print(
+                            f"[{written}/{len(cells)}] variant={cell['variant_id']} "
+                            f"prompt={cell['prompt_id']} model={cell['model']} "
+                            f"rep={cell['rep']} -> RATE LIMITED ({reason}) — stopping run",
+                            flush=True,
+                        )
+                    continue
                 status = "ACT" if record.get("activated") else "----"
                 tool = record.get("first_tool_call") or "(none)"
                 print(
-                    f"[{done_count}/{len(cells)}] variant={cell['variant_id']} "
+                    f"[{written}/{len(cells)}] variant={cell['variant_id']} "
                     f"prompt={cell['prompt_id']} model={cell['model']} rep={cell['rep']} "
                     f"-> {status} first_tool={tool}",
                     flush=True,
@@ -511,11 +653,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     finally:
         shutil.rmtree(work_root, ignore_errors=True)
 
+    completed = written - casualties
+    remaining = unrun + casualties
     print()
-    print(f"Wrote {len(cells)} records to {output}")
+    print(f"Wrote {written} record(s) to {output}")
+    if rate_limit_reason is not None:
+        print()
+        print(f"⚠ Run stopped early on a model rate limit: {rate_limit_reason}")
+        print(f"  {completed} cell(s) completed and recorded this run.")
+        print(f"  {remaining} cell(s) were not completed.")
+        print("  When your usage limit resets, finish the test with:")
+        print(f"    {_resume_command(args, output)}")
+        print(
+            "  Then summarise the whole test by passing every JSONL file to report.py:"
+        )
+        all_files = " ".join(str(p) for p in [*resume_paths, output])
+        print(f"    python3 scripts/ab-test/report.py {all_files}")
     print()
-    print(format_summary(summarize(output)))
-    return 0
+    print(format_summary(summarize([*resume_paths, output])))
+    return 2 if rate_limit_reason is not None else 0
 
 
 if __name__ == "__main__":
