@@ -51,7 +51,7 @@ def summarize(paths: Union[str, Path, Iterable]) -> List[dict]:
                 bucket["excluded_unvalidated"] += 1
                 continue
             bucket["n"] += 1
-            if row.get("rate_limit_status"):
+            if row.get("rate_limit_status") == "rejected":
                 bucket["rate_limited"] += 1
             if row.get("activated"):
                 bucket["activations"] += 1

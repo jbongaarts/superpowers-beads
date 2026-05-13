@@ -111,6 +111,15 @@ class SummarizeTest(unittest.TestCase):
         self.assertEqual(cells[0]["rate_limited"], 1)
         self.assertIn("rate_limited", format_summary(cells))
 
+    def test_summarize_does_not_count_allowed_rate_limit_status(self):
+        allowed = make_row("current", "sonnet", activated=False)
+        allowed["rate_limit_status"] = "allowed"
+        rows = [allowed, make_row("current", "sonnet", activated=False)]
+        self.write_rows(rows)
+        cells = summarize(self.path)
+
+        self.assertEqual(cells[0]["rate_limited"], 0)
+
     def test_summarize_skips_rate_limit_casualty_rows(self):
         casualty = make_row("current", "sonnet", activated=False)
         casualty["rate_limited_failure"] = "rate_limit_event status=rejected"
