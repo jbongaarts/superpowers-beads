@@ -41,6 +41,17 @@ For each `(variant, prompt, model, rep)` cell:
 The signal is binary per cell. Aggregate activation rates per
 `(variant, model)` over `n` reps and any number of prompts.
 
+Only the *first* `tool_use` block decides the outcome, so for the Claude
+harness the cell's `claude` subprocess is killed the moment that block arrives
+in the stream — tool-heavy openers ("the build is broken") otherwise run a
+dozen-plus investigation turns that the metric never reads and that dominate
+the per-cell token burn. Turn-1 behavior is unaffected, so `activated` is the
+same as if the session ran to completion; the row just records
+`early_stopped: true` and its token/cost fields come from the last assistant
+message rather than a `result` event (so `total_cost_usd`/`duration_ms` may be
+`null`). Set `AB_TEST_NO_EARLY_STOP=1` to let every session run to natural
+completion.
+
 Cells run in rep/prompt/model order with variants adjacent inside each group.
 That keeps partial JSONLs less biased if a run is interrupted before every
 cell completes.
@@ -216,6 +227,7 @@ or skill change it supports. Leave ordinary exploratory runs under
   "rate_limit_status": null,
   "rate_limited_failure": null,
   "returncode": 0,
+  "early_stopped": false,
   "stderr_excerpt": ""
 }
 ```

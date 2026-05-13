@@ -274,6 +274,7 @@ def _timeout_record(cell: dict, timeout_seconds: int) -> dict:
         "rate_limit_status": None,
         "rate_limited_failure": None,
         "returncode": None,
+        "early_stopped": False,
         "stderr_excerpt": "TIMEOUT",
     }
 
@@ -326,6 +327,7 @@ def _record_for_cell(
         "rate_limit_status": rate_limit_status,
         "rate_limited_failure": rate_limited_failure,
         "returncode": result["returncode"],
+        "early_stopped": result.get("early_stopped", False),
         "stderr_excerpt": _stderr_excerpt(result["stderr"]),
     }
 
