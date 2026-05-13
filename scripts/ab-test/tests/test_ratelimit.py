@@ -80,6 +80,16 @@ class DetectRateLimitTest(unittest.TestCase):
         ]
         self.assertIsNone(detect_rate_limit(lines, stderr="", returncode=0))
 
+    def test_nonzero_exit_with_only_benign_rate_limit_event_is_not_a_failure(self):
+        # A non-zero exit plus a benign rate_limit_event line must not self-trip
+        # via the literal "rate_limit" substring inside the event type name.
+        lines = [
+            '{"type":"system","subtype":"init"}',
+            '{"type":"rate_limit_event","rate_limit_info":{"status":"allowed"}}',
+            '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash"}]}}',
+        ]
+        self.assertIsNone(detect_rate_limit(lines, stderr="", returncode=143))
+
     def test_clean_success_with_no_events(self):
         self.assertIsNone(detect_rate_limit([], stderr="", returncode=0))
 

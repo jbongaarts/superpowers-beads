@@ -90,7 +90,22 @@ def detect_rate_limit(
     if saw_error:
         if _looks_throttled(stderr):
             return f"stderr: {str(stderr).strip()[-200:]}"
-        tail = "\n".join(stdout_lines[-30:])
+        # Fallback for throttle text the CLI dumps as plain output. Skip lines
+        # that parse as structured stream events — those were already inspected
+        # above, and e.g. a benign ``rate_limit_event`` line literally contains
+        # the substring "rate_limit", which would otherwise self-trip.
+        raw_tail = [ln for ln in stdout_lines[-30:] if not _is_stream_event(ln)]
+        tail = "\n".join(raw_tail)
         if _looks_throttled(tail):
             return f"stdout: {tail[-200:]}"
     return None
+
+
+def _is_stream_event(raw: str) -> bool:
+    line = raw.strip()
+    if not line:
+        return False
+    try:
+        return isinstance(json.loads(line), dict)
+    except json.JSONDecodeError:
+        return False

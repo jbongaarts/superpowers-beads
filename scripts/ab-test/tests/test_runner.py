@@ -131,6 +131,8 @@ class RunnerTest(unittest.TestCase):
 
         self.assertTrue(result["early_stopped"])
         self.assertTrue(fake.terminated or fake.killed)
+        # An early stop is reported as a clean exit, not a crash.
+        self.assertEqual(result["returncode"], 0)
         joined = "\n".join(result["stdout_lines"])
         self.assertIn('"tool_use"', joined)
         self.assertNotIn("AFTER", joined)

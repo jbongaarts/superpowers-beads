@@ -135,8 +135,14 @@ def run_cell(
     if timed_out.is_set():
         raise subprocess.TimeoutExpired(cmd, timeout_seconds)
 
+    # An early stop is a clean, intentional termination — the cell already
+    # produced everything the metric inspects. Report it as success so it is
+    # not mistaken for a crash (or, since the stream routinely carries benign
+    # `rate_limit_event` lines, a rate-limit failure) downstream.
+    returncode = 0 if early_stopped else proc.returncode
+
     return {
-        "returncode": proc.returncode,
+        "returncode": returncode,
         "stdout_lines": stdout_lines,
         "stderr": "".join(stderr_chunks),
         "early_stopped": early_stopped,
