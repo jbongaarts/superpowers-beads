@@ -61,6 +61,41 @@ See `docs/preflight.md` for the plugin-specific preflight checks. The built-in
 `bd preflight --check` command currently uses beads' default Go/Nix checklist,
 which is not the right gate for this plugin repo.
 
+## Branch Protection, PRs, and Releases
+
+`main` is protected on GitHub. Do **not** plan on pushing commits directly to
+`main`, even for small documentation changes. Normal integration flow is:
+
+```bash
+git switch -c <short-topic-branch>
+scripts/preflight.sh
+git push -u origin <short-topic-branch>
+gh pr create --base main --head <short-topic-branch> ...
+gh pr checks <pr-number> --watch
+gh pr merge <pr-number> --squash --delete-branch
+git switch main
+git pull --rebase
+```
+
+If a direct `git push` to `main` is rejected by branch protection, do not try to
+force it and do not leave local `main` divergent. Move the commit to a topic
+branch, open a PR, merge through GitHub, then update local `main` to
+`origin/main`.
+
+Release flow:
+
+1. Merge the version bump and release changes to `main` through a PR.
+2. Verify local `main` is exactly `origin/main` at the release commit.
+3. Run `scripts/preflight.sh` on `main`.
+4. Create and push the release tag from `main`, e.g. `git tag v1.0.1` and
+   `git push origin v1.0.1`.
+5. Confirm `.github/workflows/release.yml` succeeds and the GitHub Release has
+   the expected source archive and checksum assets.
+
+The mandatory session-completion `git push` below means push the appropriate
+topic branch, release tag, or already-allowed remote update. It is not permission
+to bypass `main` branch protection.
+
 ## Beads Usage
 
 Track all work in beads — do not use `TodoWrite` or markdown TODO lists.
