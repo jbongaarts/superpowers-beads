@@ -43,6 +43,43 @@ The Claude runner uses `--setting-sources user` and `--plugin-dir` so the projec
 
 Activation is detected from harness event output: Claude reports `Skill` tool-use events, while Codex currently reports completed command executions that read `plugins/superpowers-beads/skills/<skill>/SKILL.md`. The orchestrator skill `using-superpowers` is excluded from the comparison since it is expected to fire on every row.
 
+## Description-writing lessons
+
+The `using-superpowers` A/B test in `superpowers-beads-uij.5` compared four
+frontmatter descriptions across Claude Sonnet 4.6 and Opus 4.7, five prompt
+shapes, and ten reps per cell. The winning description was candidate A:
+
+> Use when starting a main-agent session or conversation, before the first
+> response or clarifying question, to check for applicable Superpowers Beads
+> skills; skip dispatched subagents
+
+General lessons to apply when changing skill descriptions:
+
+1. Prefer concrete trigger conditions over conceptual workflow summaries. The
+   old description said "starting any conversation" and described what the
+   skill "establishes"; that produced 0/50 activation on Sonnet and 6/50 on
+   Opus. Candidate A named the operational moment and action, and reached
+   41/50 on both models.
+2. Keep the conventional `Use when ...` shape unless there is strong evidence
+   to change it. Candidate A retained that shape and was robust across both
+   tested models. Declarative alternatives did not generalize as well.
+3. Name the agent context in the model's likely vocabulary. "main-agent session
+   or conversation" worked better cross-model than "top-level session" or
+   "first prompt in a top-level agent session".
+4. Include explicit ordering constraints for skills that must run before other
+   behavior. "Before the first response or clarifying question" appears to be
+   stronger than a generic "before any response" workflow description.
+5. Include anti-trigger boundaries when likely false positives matter. "Skip
+   dispatched subagents" belongs in this description because this skill should
+   fire in the main agent, not inside delegated workers.
+6. Choose the description that is robust across supported harnesses/models, not
+   the one with the highest single-model score. Candidate C edged A on Opus
+   (42/50 vs 41/50) but failed on Sonnet (7/50 vs A's 41/50).
+7. Treat description tuning as helpful but not sufficient for "must run first"
+   behavior. Even the winning description mostly failed on pure code-question
+   prompts, where models tended to start with code-search tools. Preserve
+   system-level enforcement for mandatory orchestration skills.
+
 ## Pre-flight
 
 Before running the matrix:
@@ -63,7 +100,7 @@ When a prompt explicitly says "(within an active conversation)" treat it as the 
 
 ### using-superpowers
 
-Description: Use when starting any conversation - establishes how to find and activate skills before any response, including clarifying questions.
+Description: Use when starting a main-agent session or conversation, before the first response or clarifying question, to check for applicable Superpowers Beads skills; skip dispatched subagents.
 
 This skill is meant to fire at session start every time. It is the orchestrator for all other activations.
 
