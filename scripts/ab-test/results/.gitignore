@@ -1,0 +1,6 @@
+# Generated run artifacts. Hand-curated example fixtures may be committed by
+# explicit `git add -f` if they ever become useful for regression tests.
+*.jsonl
+!promoted/
+!promoted/*.jsonl
+!.gitignore

@@ -1,6 +1,6 @@
 ---
 name: using-superpowers
-description: Use when starting any conversation - establishes how to find and activate skills before any response, including clarifying questions
+description: Use when starting a main-agent session or conversation, before the first response or clarifying question, to check for applicable Superpowers Beads skills; skip dispatched subagents
 ---
 
 <SUBAGENT-STOP>

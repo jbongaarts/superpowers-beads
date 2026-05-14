@@ -53,4 +53,8 @@ jobs:
         # ALLOW_IN_PROGRESS (comma-separated) lets specific in-progress beads
         # pass the preflight gate while their PRs are open. Set when needed,
         # remove once the underlying work merges.
+        #   superpowers-beads-3c0 — A/B epic brainstorm/context record, kept
+        #   in_progress on the remote Dolt until the epic is reviewed/closed.
+        env:
+          ALLOW_IN_PROGRESS: superpowers-beads-3c0
         run: scripts/preflight.sh

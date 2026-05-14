@@ -1,0 +1,14 @@
+# Frontmatter description candidates for the using-superpowers skill.
+# See superpowers-beads-3c0 for the design dialogue that produced these.
+variants:
+  - id: current
+    description: "Use when starting any conversation - establishes how to find and activate skills before any response, including clarifying questions"
+
+  - id: a
+    description: "Use when starting a main-agent session or conversation, before the first response or clarifying question, to check for applicable Superpowers Beads skills; skip dispatched subagents"
+
+  - id: b
+    description: "Starting a top-level session or conversation: check whether any Superpowers Beads skill applies before the first response, action, or clarifying question; skip dispatched subagents"
+
+  - id: c
+    description: "First prompt in a top-level agent session or conversation: check whether any Superpowers Beads skill applies before responding, acting, or asking a clarifying question; skip dispatched subagents"
