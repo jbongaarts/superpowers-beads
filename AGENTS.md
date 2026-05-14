@@ -98,22 +98,11 @@ to bypass `main` branch protection.
 
 ## Beads Usage
 
-Track all work in beads — do not use `TodoWrite` or markdown TODO lists.
+Bead data lives in Dolt and syncs to `origin` under `refs/dolt/data` (same
+GitHub repo as the code). `.beads/issues.jsonl` is not tracked and is not the
+source of truth — use `bd export` only for one-off snapshots.
 
-This repository uses Beads' documented Dolt-native sync model. The Dolt remote
-is the same GitHub repository as the source code:
-
-```bash
-bd dolt remote list
-# origin  https://github.com/jbongaarts/superpowers-beads.git
-```
-
-Beads data is pushed to GitHub under `refs/dolt/data`, separate from normal Git
-branches and tags. `.beads/issues.jsonl` is not tracked and is not the source
-of truth. Use `bd export` only when a one-off human-readable snapshot is
-explicitly needed.
-
-Before creating or updating beads on an existing checkout, sync the Dolt DB:
+Sync before creating or updating beads on an existing checkout:
 
 ```bash
 bd dolt pull
@@ -121,61 +110,22 @@ bd dolt pull
 
 ### First-time setup
 
-After cloning, bootstrap the local Dolt database from the remote Dolt ref and
-install the bd-managed git hooks:
+After cloning, bootstrap the local Dolt database and install the bd-managed
+git hooks:
 
 ```bash
 bd bootstrap
-bd dolt remote list
 bd list
 ```
 
 `bd bootstrap` detects `refs/dolt/data` on `origin`, clones the Beads database,
-and configures the Dolt remote for future `bd dolt pull` / `bd dolt push`
-operations. It also installs the hooks under `.beads/hooks/` via
+configures the Dolt remote, and installs hooks under `.beads/hooks/` via
 `core.hooksPath`. Without those hooks, beads sync is manual only.
-
-For an existing checkout created before this remote was configured:
-
-```bash
-git pull --rebase
-bd dolt remote list
-bd dolt remote add origin https://github.com/jbongaarts/superpowers-beads.git  # only if origin is missing
-bd dolt pull
-```
-
-If `bd dolt pull` reports unrelated Dolt history and you have no unpublished
-local bead changes, move the local embedded DB aside and bootstrap from the
-remote:
-
-```bash
-mv -f .beads/embeddeddolt ".beads/embeddeddolt.pre-remote-migration.$(date +%Y%m%d%H%M%S)"
-bd bootstrap
-```
 
 ## Non-Interactive Shell Commands
 
-**ALWAYS use non-interactive flags** with file operations to avoid hanging on confirmation prompts.
-
-Shell commands like `cp`, `mv`, and `rm` may be aliased to include `-i` (interactive) mode on some systems, causing the agent to hang indefinitely waiting for y/n input.
-
-**Use these forms instead:**
-```bash
-# Force overwrite without prompting
-cp -f source dest           # NOT: cp source dest
-mv -f source dest           # NOT: mv source dest
-rm -f file                  # NOT: rm file
-
-# For recursive operations
-rm -rf directory            # NOT: rm -r directory
-cp -rf source dest          # NOT: cp -r source dest
-```
-
-**Other commands that may prompt:**
-- `scp` - use `-o BatchMode=yes` for non-interactive
-- `ssh` - use `-o BatchMode=yes` to fail instead of prompting
-- `apt-get` - use `-y` flag
-- `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
+`cp`, `mv`, and `rm` may be aliased to `-i` mode on some systems and will hang
+waiting for y/n input. Always pass `-f` (and `-rf` for recursive operations).
 
 ## Lineage
 
